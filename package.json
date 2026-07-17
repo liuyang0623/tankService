@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "dev": "go run ./cmd/server/...",
+    "dev:db": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:db:down": "docker compose -f docker-compose.dev.yml down",
+    "dev:db:logs": "docker compose -f docker-compose.dev.yml logs -f",
+    "start": "docker compose up -d",
+    "stop": "docker compose down",
+    "build": "go build -o server ./cmd/server/...",
+    "test": "go test ./...",
+    "test:v": "go test -v ./...",
+    "swagger": "swag init -g cmd/server/main.go -o docs",
+    "tidy": "go mod tidy"
+  },
+  "dependencies": {
+    "@fission-ai/openspec": "^1.5.0"
+  }
+}

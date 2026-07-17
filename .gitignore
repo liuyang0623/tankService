@@ -1,0 +1,37 @@
+# Build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/server
+
+# Go workspace
+vendor/
+
+# Node
+node_modules/
+
+# Environment (ignore all .env files except the example template)
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Comet/agent internals
+.agents/
+comet/
+.claude/
+.comet/
+.cursor/
+.codegraph/

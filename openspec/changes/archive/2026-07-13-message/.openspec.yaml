@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-07-13
+proposal: proposal.md
+design_doc: design_doc.md
+specs:
+  - message

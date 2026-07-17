@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: go-service-mysql
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-go_service_db}
+      MYSQL_USER: ${DB_USER:-go_service}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # 仅绑定到 127.0.0.1，MySQL 不对外网暴露，只供 app 容器和本地调试访问
+      - '127.0.0.1:${DB_PORT:-3306}:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - go-service-network
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
+
+  # Go Application
+  # 生产环境：通过 APP_IMAGE 环境变量指定从 Docker Hub 拉取的预构建镜像
+  # 本地开发：可使用 docker-compose.dev.yml 覆盖此配置以使用 build
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-service-app
+    restart: unless-stopped
+    ports:
+      # 仅绑定到 127.0.0.1，3000 端口不对外网暴露
+      # 由宿主机上的 Nginx 反向代理到此端口，外部只需开放 80/443
+      - '127.0.0.1:3000:3000'
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      DATABASE_URL: ${DB_USER:-go_service}:${DB_PASSWORD}@tcp(mysql:3306)/${DB_NAME:-go_service_db}?charset=utf8mb4&parseTime=True&loc=Local
+      API_PREFIX: ${API_PREFIX:-api/v1}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - go-service-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  go-service-network:
+    driver: bridge
