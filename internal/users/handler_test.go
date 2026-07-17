@@ -14,9 +14,10 @@ import (
 
 // mockUserService is a test double for UserService.
 type mockUserService struct {
-	getProfileFunc    func(ctx context.Context, userID uint) (*User, error)
-	findOneFunc       func(ctx context.Context, userID uint) (*User, error)
-	updateProfileFunc func(ctx context.Context, userID uint, updates map[string]interface{}) (*User, error)
+	getProfileFunc              func(ctx context.Context, userID uint) (*User, error)
+	findOneFunc                 func(ctx context.Context, userID uint) (*User, error)
+	updateProfileFunc           func(ctx context.Context, userID uint, updates map[string]interface{}) (*User, error)
+	incrSubscribeFollowQuotaFunc func(ctx context.Context, userID uint) error
 }
 
 func (m *mockUserService) GetProfile(ctx context.Context, userID uint) (*User, error) {
@@ -29,6 +30,52 @@ func (m *mockUserService) FindOne(ctx context.Context, userID uint) (*User, erro
 
 func (m *mockUserService) UpdateProfile(ctx context.Context, userID uint, updates map[string]interface{}) (*User, error) {
 	return m.updateProfileFunc(ctx, userID, updates)
+}
+
+func (m *mockUserService) IncrSubscribeFollowQuota(ctx context.Context, userID uint) error {
+	return m.incrSubscribeFollowQuotaFunc(ctx, userID)
+}
+
+func TestUserHandler_SubscribeFollow_Success(t *testing.T) {
+	var gotUserID uint
+	m := &mockUserService{
+		incrSubscribeFollowQuotaFunc: func(ctx context.Context, userID uint) error {
+			gotUserID = userID
+			return nil
+		},
+	}
+	h := &UserHandler{service: m}
+	r := setupGin()
+	r.POST("/users/subscribe/follow", func(c *gin.Context) {
+		c.Set("userID", uint(42))
+		h.SubscribeFollow(c)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/users/subscribe/follow", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if gotUserID != 42 {
+		t.Errorf("expected quota incr for user 42, got %d", gotUserID)
+	}
+}
+
+func TestUserHandler_SubscribeFollow_Unauthorized(t *testing.T) {
+	m := &mockUserService{}
+	h := &UserHandler{service: m}
+	r := setupGin()
+	r.POST("/users/subscribe/follow", h.SubscribeFollow) // no userID set
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/users/subscribe/follow", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", w.Code)
+	}
 }
 
 func setupGin() *gin.Engine {

@@ -101,6 +101,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		authorized.GET("/users/profile", userHandler.GetProfile)
 		authorized.PATCH("/users/profile", userHandler.UpdateProfile)
 		authorized.POST("/users/:id/follow", followHandler.ToggleFollow)
+		authorized.POST("/users/subscribe/follow", userHandler.SubscribeFollow)
 
 		// Optional-auth user routes (personalize isFollowing when logged in)
 		optionalUser := v1.Group("")

@@ -16,6 +16,7 @@ type userServiceIface interface {
 	GetProfile(ctx context.Context, userID uint) (*User, error)
 	FindOne(ctx context.Context, userID uint) (*User, error)
 	UpdateProfile(ctx context.Context, userID uint, updates map[string]interface{}) (*User, error)
+	IncrSubscribeFollowQuota(ctx context.Context, userID uint) error
 }
 
 // followStatsIface provides follow counts and follow state without importing the
@@ -86,6 +87,25 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	}
 
 	response.Success(c, user)
+}
+
+// SubscribeFollow godoc
+// @Summary 上报关注订阅授权（累加可推送配额）
+// @Tags users
+// @Security Bearer
+// @Success 200 {object} map[string]interface{}
+// @Router /users/subscribe/follow [post]
+func (h *UserHandler) SubscribeFollow(c *gin.Context) {
+	uid, ok := getUserID(c)
+	if !ok {
+		response.Unauthorized(c, "unauthorized")
+		return
+	}
+	if err := h.service.IncrSubscribeFollowQuota(c.Request.Context(), uid); err != nil {
+		response.InternalError(c, "server error")
+		return
+	}
+	response.Success(c, gin.H{"ok": true})
 }
 
 // UpdateProfile godoc

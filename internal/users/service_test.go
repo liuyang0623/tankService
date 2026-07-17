@@ -20,6 +20,10 @@ type fakeUserDB struct {
 	// record calls
 	lastFirstID    uint
 	lastUpdatesMap map[string]interface{}
+	// for IncrColumn
+	incrError      error
+	lastIncrUserID uint
+	lastIncrColumn string
 }
 
 func (f *fakeUserDB) First(dest interface{}, id uint) error {
@@ -44,6 +48,26 @@ func (f *fakeUserDB) Updates(dest interface{}, values map[string]interface{}) er
 		*u = *f.saveUser
 	}
 	return nil
+}
+
+func (f *fakeUserDB) IncrColumn(model interface{}, userID uint, column string) error {
+	f.lastIncrUserID = userID
+	f.lastIncrColumn = column
+	return f.incrError
+}
+
+func TestIncrSubscribeFollowQuota_Success(t *testing.T) {
+	fdb := &fakeUserDB{}
+	svc := newUserServiceFromDB(fdb)
+	if err := svc.IncrSubscribeFollowQuota(context.Background(), 42); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fdb.lastIncrUserID != 42 {
+		t.Errorf("expected incr for user 42, got %d", fdb.lastIncrUserID)
+	}
+	if fdb.lastIncrColumn != "subscribe_follow_quota" {
+		t.Errorf("expected column subscribe_follow_quota, got %q", fdb.lastIncrColumn)
+	}
 }
 
 // --- GetProfile tests ---

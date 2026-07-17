@@ -13,6 +13,8 @@ type User struct {
 	Phone      string `gorm:"type:varchar(20);default:''" json:"phone,omitempty"`
 	Bio        string `gorm:"type:varchar(191);default:''" json:"bio"`
 	Gender     int    `gorm:"default:0" json:"gender"`
+	// SubscribeFollowQuota 剩余可推送的关注订阅消息次数（微信一次性订阅，授权一次 +1，推送一条 -1）
+	SubscribeFollowQuota int `gorm:"column:subscribe_follow_quota;default:0" json:"-"`
 }
 
 // TableName returns the database table name for User.

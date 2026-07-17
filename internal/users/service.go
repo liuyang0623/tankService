@@ -12,6 +12,7 @@ import (
 type userDB interface {
 	First(dest interface{}, id uint) error
 	Updates(dest interface{}, values map[string]interface{}) error
+	IncrColumn(model interface{}, userID uint, column string) error
 }
 
 // gormUserDB adapts *gorm.DB to the userDB interface.
@@ -25,6 +26,11 @@ func (g *gormUserDB) First(dest interface{}, id uint) error {
 
 func (g *gormUserDB) Updates(dest interface{}, values map[string]interface{}) error {
 	return g.db.Model(dest).Updates(values).Error
+}
+
+func (g *gormUserDB) IncrColumn(model interface{}, userID uint, column string) error {
+	return g.db.Model(model).Where("id = ?", userID).
+		UpdateColumn(column, gorm.Expr(column+" + 1")).Error
 }
 
 // allowedUpdateFields is the whitelist of user profile fields that can be updated.
@@ -102,4 +108,12 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uint, updates ma
 	}
 
 	return &user, nil
+}
+
+// IncrSubscribeFollowQuota 原子累加用户的关注订阅推送配额（授权一次 +1）。
+func (s *UserService) IncrSubscribeFollowQuota(ctx context.Context, userID uint) error {
+	if err := s.db.IncrColumn(&User{}, userID, "subscribe_follow_quota"); err != nil {
+		return fmt.Errorf("incr subscribe quota: %w", err)
+	}
+	return nil
 }
