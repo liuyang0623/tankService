@@ -31,6 +31,8 @@
 │   ├── notification/    # 系统通知（关注等，可扩展 like/comment）
 │   ├── diary/           # 日记
 │   ├── notebook/        # 日记本
+│   ├── wechat/          # 微信服务端能力（access_token 缓存 + 订阅消息发送）
+│   ├── subscribepush/   # 关注事件 → 微信订阅消息推送（配额管理）
 │   └── upload/          # 文件上传
 ├── pkg/                 # response/config/database/middleware 等公共包
 ├── openspec/            # 需求规格与 change 归档（comet 工作流）
@@ -106,6 +108,7 @@ npm run stop
 | `JWT_SECRET` | JWT 签名密钥 | `your_jwt_secret` |
 | `WECHAT_APPID` | 微信小程序 AppID | `wx...` |
 | `WECHAT_SECRET` | 微信小程序 Secret | `...` |
+| `WECHAT_SUBSCRIBE_TPL_FOLLOW` | 关注订阅消息模板 ID | `Q2Bce...T_BA` |
 | `UPYUN_BUCKET` | 又拍云空间名 | `my-bucket` |
 | `UPYUN_DOMAIN` | 又拍云访问域名 | `https://img.example.com` |
 | `UPYUN_OPERATOR` | 又拍云操作员 | `operator_name` |
@@ -130,6 +133,7 @@ http://localhost:3000/api/docs/index.html
 | `GET` | `/api/v1/users/:id` | 获取用户信息 | ✗ |
 | `GET` | `/api/v1/users/profile` | 获取当前用户资料 | ✓ |
 | `PATCH` | `/api/v1/users/profile` | 更新用户资料 | ✓ |
+| `POST` | `/api/v1/users/subscribe/follow` | 上报关注订阅授权（累加推送配额） | ✓ |
 | `GET` | `/api/v1/posts` | 获取帖子列表 | ✗ |
 | `GET` | `/api/v1/posts/:id` | 获取帖子详情 | ✗ |
 | `POST` | `/api/v1/posts` | 创建帖子 | ✓ |

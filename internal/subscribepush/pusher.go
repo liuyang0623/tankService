@@ -49,8 +49,14 @@ func (p *Pusher) pushFollowSync(ctx context.Context, targetID, actorID uint) {
 		log.Printf("subscribe push: lookup target %d failed: %v", targetID, err)
 		return
 	}
-	if quota <= 0 || openid == "" {
-		return // 无配额或无 openid，不推送（站内通知已兜底）
+	log.Printf("subscribe push: target=%d actor=%d quota=%d openid=%q tpl=%q", targetID, actorID, quota, openid, p.tplID)
+	if quota <= 0 {
+		log.Printf("subscribe push: skip target=%d — quota exhausted (需重新授权)", targetID)
+		return
+	}
+	if openid == "" {
+		log.Printf("subscribe push: skip target=%d — empty openid (登录未写入?)", targetID)
+		return
 	}
 
 	nickname, _ := p.store.GetNickname(ctx, actorID)
@@ -70,6 +76,7 @@ func (p *Pusher) pushFollowSync(ctx context.Context, targetID, actorID uint) {
 		log.Printf("subscribe push: send to %d failed: %v", targetID, err)
 		return
 	}
+	log.Printf("subscribe push: SENT ok target=%d", targetID)
 	if err := p.store.DecrSubscribeQuota(ctx, targetID); err != nil {
 		log.Printf("subscribe push: decr quota for %d failed: %v", targetID, err)
 	}

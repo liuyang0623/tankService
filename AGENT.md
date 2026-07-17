@@ -8,7 +8,7 @@
 
 ## 0. 最高优先级：comet 工作流阶段门
 
-本仓库用 **comet + OpenSpec** 管理需求到归档的全流程。**不要裸开发**——成体量的新特性/改动必须走 comet，不能直接 `openspec new change` 跳过阶段门，也不能直接写源码。
+本仓库用 **comet** 管理需求到归档的全流程。**不要裸开发**——成体量的新特性/改动必须走 comet，不能直接 `openspec new change` 跳过阶段门，也不能直接写源码。
 
 存在活跃 change 时（`openspec/changes/<name>/.comet.yaml` 存在），**每次动手前必须先读 `.comet.yaml` 的 `phase` 字段**，只做当前阶段允许的操作。
 
