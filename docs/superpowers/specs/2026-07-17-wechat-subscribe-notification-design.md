@@ -3,6 +3,8 @@ comet_change: wechat-subscribe-notification
 role: technical-design
 canonical_spec: openspec
 status: final
+archived-with: 2026-07-17-wechat-subscribe-notification
+status: final
 ---
 
 # 微信订阅消息推送 — Design Doc
@@ -109,3 +111,4 @@ follow.ToggleFollow → Create 成功
 
 - **一次性订阅**：配额耗尽收不到，文案说清。
 - **access_token 单实例内存缓存**：多实例部署需换共享缓存（Redis 等），本期单实例不做。
+
