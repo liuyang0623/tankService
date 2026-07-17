@@ -30,8 +30,11 @@ node_modules/
 
 # Comet/agent internals
 .agents/
+.agent/
 comet/
 .claude/
 .comet/
 .cursor/
+.codex/
 .codegraph/
+docs/superpowers/

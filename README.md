@@ -1,6 +1,8 @@
-# Go Service
+# tankService
 
-微信小程序后端服务，基于 Go + Gin + GORM + MySQL 构建，提供用户、帖子、互动、文件上传等 RESTful API。
+微信小程序后端服务，基于 Go + Gin + GORM + MySQL 构建，提供用户、帖子、互动、社交、私信、日记、系统通知、文件上传等 RESTful API。
+
+> AI 协作前置条件与铁律见 [AGENT.md](./AGENT.md)——本仓库用 **comet + OpenSpec** 管理开发全流程，勿裸开发。
 
 ## 技术栈
 
@@ -8,21 +10,30 @@
 - **Web 框架**：[Gin](https://github.com/gin-gonic/gin)
 - **ORM**：[GORM](https://gorm.io) + MySQL 8.0
 - **认证**：JWT + 微信小程序登录
+- **实时**：WebSocket（私信）
 - **文件上传**：又拍云（UpYun）
 - **API 文档**：Swagger（swaggo）
 - **容器化**：Docker / Docker Compose
+- **开发流程**：comet + OpenSpec（spec-driven）
 
 ## 目录结构
 
 ```
 .
-├── cmd/server/          # 应用入口
+├── cmd/server/          # 应用入口 + 路由装配 + AutoMigrate
 ├── internal/
 │   ├── auth/            # 微信登录与 JWT 认证
 │   ├── users/           # 用户模块
-│   ├── posts/           # 帖子模块
+│   ├── posts/           # 帖子模块（含话题分类）
 │   ├── interactions/    # 互动模块（点赞、收藏、评论）
-│   └── upload/          # 文件上传模块
+│   ├── follow/          # 关注/粉丝
+│   ├── message/         # 私信会话（WebSocket）
+│   ├── notification/    # 系统通知（关注等，可扩展 like/comment）
+│   ├── diary/           # 日记
+│   ├── notebook/        # 日记本
+│   └── upload/          # 文件上传
+├── pkg/                 # response/config/database/middleware 等公共包
+├── openspec/            # 需求规格与 change 归档（comet 工作流）
 ├── docs/                # Swagger 自动生成文档
 ├── docker-compose.yml       # 生产环境
 ├── docker-compose.dev.yml   # 本地开发（仅数据库）
@@ -132,3 +143,15 @@ http://localhost:3000/api/docs/index.html
 | `DELETE` | `/api/v1/comments/:id` | 删除评论 | ✓ |
 | `POST` | `/api/v1/upload/image` | 上传图片 | ✓ |
 | `POST` | `/api/v1/upload/file` | 上传文件 | ✓ |
+| `POST` | `/api/v1/users/:id/follow` | 关注/取关用户 | ✓ |
+| `GET` | `/api/v1/users/:id/followers` | 粉丝列表 | 可选 |
+| `GET` | `/api/v1/users/:id/following` | 关注列表 | 可选 |
+| `GET` | `/api/v1/conversations` | 私信会话列表 | ✓ |
+| `GET` | `/api/v1/conversations/:id/messages` | 会话消息 | ✓ |
+| `POST` | `/api/v1/messages` | 发送私信 | ✓ |
+| `POST` | `/api/v1/conversations/:id/read` | 会话标记已读 | ✓ |
+| `GET` | `/ws` | WebSocket（私信推送） | 内部校验 token |
+| `GET` | `/api/v1/notifications` | 系统通知列表 | ✓ |
+| `POST` | `/api/v1/notifications/read` | 通知整体标记已读 | ✓ |
+| `GET` | `/api/v1/notifications/unread-count` | 未读数 + 最新摘要 | ✓ |
+| `GET/POST/PATCH/DELETE` | `/api/v1/diaries`、`/api/v1/notebooks` | 日记 / 日记本 CRUD | ✓ |
