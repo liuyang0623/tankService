@@ -1,3 +1,10 @@
+---
+comet_change: wechat-subscribe-notification
+role: technical-design
+canonical_spec: openspec
+status: final
+---
+
 # 微信订阅消息推送 — Design Doc
 
 > Change: wechat-subscribe-notification（Change B）
