@@ -57,6 +57,10 @@ func (p *Pusher) pushFollowSync(ctx context.Context, targetID, actorID uint) {
 	if nickname == "" {
 		nickname = "有人"
 	}
+	// 模板字段（模板 ID ...T_BA「被关注通知」）：
+	//   thing1 = 关注人昵称（thing 类型，微信限制 ≤20 字符，超长会 47003 拒发）
+	//   time2  = 关注时间（time 类型）
+	nickname = truncateRunes(nickname, 20)
 	data := map[string]any{
 		"thing1": map[string]string{"value": nickname},
 		"time2":  map[string]string{"value": time.Now().Format("2006-01-02 15:04")},
@@ -69,4 +73,13 @@ func (p *Pusher) pushFollowSync(ctx context.Context, targetID, actorID uint) {
 	if err := p.store.DecrSubscribeQuota(ctx, targetID); err != nil {
 		log.Printf("subscribe push: decr quota for %d failed: %v", targetID, err)
 	}
+}
+
+// truncateRunes 按 rune 截断字符串到 max 个字符（中文安全，不切坏多字节）。
+func truncateRunes(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max])
 }

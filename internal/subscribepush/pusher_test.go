@@ -10,16 +10,18 @@ import (
 // --- fakes ---
 
 type fakeSender struct {
-	called   bool
-	openid   string
-	tplID    string
-	sendErr  error
+	called  bool
+	openid  string
+	tplID   string
+	data    map[string]any
+	sendErr error
 }
 
 func (f *fakeSender) SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any) error {
 	f.called = true
 	f.openid = openid
 	f.tplID = tplID
+	f.data = data
 	return f.sendErr
 }
 
@@ -60,6 +62,20 @@ func TestPush_WithQuota_Sends(t *testing.T) {
 	}
 	if !store.decrCalled {
 		t.Error("expected quota decremented after send")
+	}
+}
+
+func TestPush_LongNickname_Truncated(t *testing.T) {
+	sender := &fakeSender{}
+	long := "这是一个非常非常非常非常非常非常长的昵称超过二十个字符了" // >20 runes
+	store := &fakeStore{openid: "openid-a", quota: 1, nickname: long}
+	p := New(sender, store, "tpl-123")
+
+	p.pushFollowSync(context.Background(), 1, 2)
+
+	thing1, _ := sender.data["thing1"].(map[string]string)
+	if got := []rune(thing1["value"]); len(got) > 20 {
+		t.Errorf("thing1 not truncated to 20 runes: got %d", len(got))
 	}
 }
 
