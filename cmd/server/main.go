@@ -22,8 +22,10 @@ import (
 	"go-service/internal/message"
 	"go-service/internal/notification"
 	"go-service/internal/posts"
+	"go-service/internal/subscribepush"
 	"go-service/internal/upload"
 	"go-service/internal/users"
+	"go-service/internal/wechat"
 	"go-service/pkg/config"
 	"go-service/pkg/database"
 	"go-service/pkg/middleware"
@@ -89,9 +91,14 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		notificationSvc := notification.NewNotificationService(db)
 		notificationHandler := notification.NewNotificationHandler(notificationSvc)
 
+		// WeChat subscribe-message pusher (declared before follow so follow can trigger pushes)
+		wechatClient := wechat.NewClient(cfg.WechatAppID, cfg.WechatSecret)
+		subscribePusher := subscribepush.New(wechatClient, subscribepush.NewGormStore(db), cfg.WechatSubscribeTplFollow)
+
 		// Follow service (also provides follow stats to the user handler)
 		followSvc := follow.NewFollowService(db)
 		followSvc.SetNotifier(notificationSvc)
+		followSvc.SetSubscribePusher(subscribePusher)
 		followHandler := follow.NewFollowHandler(followSvc)
 		userHandler.SetFollowStats(followSvc)
 

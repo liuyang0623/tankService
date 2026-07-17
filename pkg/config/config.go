@@ -14,6 +14,7 @@ type Config struct {
 	JWTSecret     string
 	WechatAppID   string
 	WechatSecret  string
+	WechatSubscribeTplFollow string
 	UpyunBucket   string
 	UpyunOperator string
 	UpyunPassword string
@@ -33,6 +34,7 @@ func Load() (*Config, error) {
 		JWTSecret:     os.Getenv("JWT_SECRET"),
 		WechatAppID:   os.Getenv("WECHAT_APPID"),
 		WechatSecret:  os.Getenv("WECHAT_SECRET"),
+		WechatSubscribeTplFollow: os.Getenv("WECHAT_SUBSCRIBE_TPL_FOLLOW"),
 		UpyunBucket:   os.Getenv("UPYUN_BUCKET"),
 		UpyunOperator: getEnvOrDefault("UPYUN_OPERATOR", "liuyang"),
 		UpyunPassword: os.Getenv("UPYUN_PASSWORD"),

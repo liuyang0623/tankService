@@ -17,10 +17,18 @@ type notifier interface {
 	CreateFollow(ctx context.Context, userID, actorID uint) error
 }
 
+// subscribePusher abstracts pushing a WeChat subscribe message when someone is
+// followed. Fire-and-forget: the implementation handles quota/openid lookup,
+// async goroutine, timeout, and errors internally (logs only).
+type subscribePusher interface {
+	PushFollow(ctx context.Context, targetID, actorID uint)
+}
+
 // FollowService handles user follow relationships.
 type FollowService struct {
 	db       *gorm.DB
 	notifier notifier
+	pusher   subscribePusher
 }
 
 // NewFollowService creates a new FollowService.
@@ -32,6 +40,12 @@ func NewFollowService(db *gorm.DB) *FollowService {
 // someone follows them. Optional — if unset, follow proceeds without notifying.
 func (s *FollowService) SetNotifier(n notifier) {
 	s.notifier = n
+}
+
+// SetSubscribePusher injects the WeChat subscribe-message pusher. Optional —
+// if unset, follow proceeds without pushing.
+func (s *FollowService) SetSubscribePusher(p subscribePusher) {
+	s.pusher = p
 }
 
 // ToggleFollow toggles the follow relationship from followerID to targetID.
@@ -75,6 +89,12 @@ func (s *FollowService) ToggleFollow(ctx context.Context, followerID, targetID u
 		if err := s.notifier.CreateFollow(ctx, targetID, followerID); err != nil {
 			log.Printf("follow notification failed (target=%d actor=%d): %v", targetID, followerID, err)
 		}
+	}
+
+	// Push a WeChat subscribe message (async, fire-and-forget). Failures never
+	// affect the follow or the in-app notification.
+	if s.pusher != nil {
+		s.pusher.PushFollow(ctx, targetID, followerID)
 	}
 	return true, nil
 }
