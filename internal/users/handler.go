@@ -78,8 +78,10 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 
 	user, err := h.service.GetProfile(c.Request.Context(), uid)
 	if err != nil {
+		// token 有效但用户在库中不存在（跨环境旧 token、账号已删除等）视为登录态失效，
+		// 返回 401 触发前端重新登录，而非 404。
 		if err == gorm.ErrRecordNotFound {
-			response.Error(c, http.StatusNotFound, "user not found")
+			response.Unauthorized(c, "login expired")
 			return
 		}
 		response.InternalError(c, "server error")
@@ -145,8 +147,9 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 	user, err := h.service.UpdateProfile(c.Request.Context(), uid, updates)
 	if err != nil {
+		// 当前登录用户在库中不存在，同 GetProfile 视为登录态失效，返回 401。
 		if err == gorm.ErrRecordNotFound {
-			response.Error(c, http.StatusNotFound, "user not found")
+			response.Unauthorized(c, "login expired")
 			return
 		}
 		response.InternalError(c, "server error")

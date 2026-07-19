@@ -124,7 +124,7 @@ func TestUserHandler_GetProfile_Success(t *testing.T) {
 	}
 }
 
-func TestUserHandler_GetProfile_NotFound(t *testing.T) {
+func TestUserHandler_GetProfile_UserMissing_Unauthorized(t *testing.T) {
 	svc := &mockUserService{
 		getProfileFunc: func(ctx context.Context, userID uint) (*User, error) {
 			return nil, gorm.ErrRecordNotFound
@@ -142,12 +142,13 @@ func TestUserHandler_GetProfile_NotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected 404, got %d", w.Code)
+	// token 有效但用户在库中不存在 → 登录态失效 → 401
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", w.Code)
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, "user not found") {
-		t.Errorf("expected body to contain 'user not found', got %s", body)
+	if !strings.Contains(body, "login expired") {
+		t.Errorf("expected body to contain 'login expired', got %s", body)
 	}
 }
 
@@ -221,7 +222,7 @@ func TestUserHandler_UpdateProfile_Success(t *testing.T) {
 	}
 }
 
-func TestUserHandler_UpdateProfile_NotFound(t *testing.T) {
+func TestUserHandler_UpdateProfile_UserMissing_Unauthorized(t *testing.T) {
 	svc := &mockUserService{
 		updateProfileFunc: func(ctx context.Context, userID uint, updates map[string]interface{}) (*User, error) {
 			return nil, gorm.ErrRecordNotFound
@@ -241,12 +242,13 @@ func TestUserHandler_UpdateProfile_NotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected 404, got %d", w.Code)
+	// token 有效但用户在库中不存在 → 登录态失效 → 401
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", w.Code)
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, "user not found") {
-		t.Errorf("expected body to contain 'user not found', got %s", body)
+	if !strings.Contains(body, "login expired") {
+		t.Errorf("expected body to contain 'login expired', got %s", body)
 	}
 }
 
