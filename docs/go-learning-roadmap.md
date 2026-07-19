@@ -43,7 +43,7 @@
 ### 1.5 面向对象（Go 风格）
 
 - [x] 方法（Method）：给 struct 绑定方法
-- [ ] 接口（Interface）：隐式实现（鸭子类型）
+- [x] 接口（Interface）：隐式实现（鸭子类型）
 - [ ] 组合优于继承：struct 嵌入
 - [ ] 空接口 `interface{}` / `any`
 - [ ] 类型断言与类型 switch
