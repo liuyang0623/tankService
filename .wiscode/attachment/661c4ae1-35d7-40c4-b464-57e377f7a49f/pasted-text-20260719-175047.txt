@@ -1,0 +1,41 @@
+WARN[0000] /opt/tankService/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+go-service-mysql  | 2026-07-19 09:48:31+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:32+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+go-service-mysql  | 2026-07-19 09:48:32+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:32+00:00 [ERROR] [Entrypoint]: MYSQL_USER="root", MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user
+go-service-mysql  |     Remove MYSQL_USER="root" and use one of the following to control the root user password:
+go-service-mysql  |     - MYSQL_ROOT_PASSWORD
+go-service-mysql  |     - MYSQL_ALLOW_EMPTY_PASSWORD
+go-service-mysql  |     - MYSQL_RANDOM_ROOT_PASSWORD
+go-service-mysql  | 2026-07-19 09:48:38+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:39+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+go-service-mysql  | 2026-07-19 09:48:39+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:39+00:00 [ERROR] [Entrypoint]: MYSQL_USER="root", MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user
+go-service-mysql  |     Remove MYSQL_USER="root" and use one of the following to control the root user password:
+go-service-mysql  |     - MYSQL_ROOT_PASSWORD
+go-service-mysql  |     - MYSQL_ALLOW_EMPTY_PASSWORD
+go-service-mysql  |     - MYSQL_RANDOM_ROOT_PASSWORD
+go-service-mysql  | 2026-07-19 09:48:52+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:52+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+go-service-mysql  | 2026-07-19 09:48:52+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:48:52+00:00 [ERROR] [Entrypoint]: MYSQL_USER="root", MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user
+go-service-mysql  |     Remove MYSQL_USER="root" and use one of the following to control the root user password:
+go-service-mysql  |     - MYSQL_ROOT_PASSWORD
+go-service-mysql  |     - MYSQL_ALLOW_EMPTY_PASSWORD
+go-service-mysql  |     - MYSQL_RANDOM_ROOT_PASSWORD
+go-service-mysql  | 2026-07-19 09:49:18+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:49:18+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+go-service-mysql  | 2026-07-19 09:49:18+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:49:18+00:00 [ERROR] [Entrypoint]: MYSQL_USER="root", MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user
+go-service-mysql  |     Remove MYSQL_USER="root" and use one of the following to control the root user password:
+go-service-mysql  |     - MYSQL_ROOT_PASSWORD
+go-service-mysql  |     - MYSQL_ALLOW_EMPTY_PASSWORD
+go-service-mysql  |     - MYSQL_RANDOM_ROOT_PASSWORD
+go-service-mysql  | 2026-07-19 09:50:10+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:50:10+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+go-service-mysql  | 2026-07-19 09:50:10+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.45-1.el9 started.
+go-service-mysql  | 2026-07-19 09:50:10+00:00 [ERROR] [Entrypoint]: MYSQL_USER="root", MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user and cannot be used for the root user
+go-service-mysql  |     Remove MYSQL_USER="root" and use one of the following to control the root user password:
+go-service-mysql  |     - MYSQL_ROOT_PASSWORD
+go-service-mysql  |     - MYSQL_ALLOW_EMPTY_PASSWORD
+go-service-mysql  |     - MYSQL_RANDOM_ROOT_PASSWORD
