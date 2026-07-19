@@ -12,6 +12,9 @@ WORKDIR /app
 # git 供 go mod download 拉取部分依赖使用
 RUN apk add --no-cache git
 
+# 使用国内 Go 模块代理，避免服务器直连 proxy.golang.org 超时（i/o timeout）
+ENV GOPROXY=https://goproxy.cn,direct
+
 # 先拷贝依赖清单并下载，利用 Docker 层缓存（依赖不变时跳过重新下载）
 COPY go.mod go.sum ./
 RUN go mod download
