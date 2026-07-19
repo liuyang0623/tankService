@@ -6,6 +6,13 @@ name: Deploy to Tencent Cloud
 on:
   push:
     branches: [main]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 # 同一时刻只允许一个部署在跑，避免并发部署互相踩踏；
