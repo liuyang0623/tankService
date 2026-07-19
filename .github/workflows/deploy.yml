@@ -1,0 +1,57 @@
+name: Deploy to Tencent Cloud
+
+# 触发条件：
+#   push main    → 推送主分支代码自动部署
+#   手动触发     → GitHub 仓库 Actions 页面点 "Run workflow" 按钮
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一时刻只允许一个部署在跑，避免并发部署互相踩踏；
+# 新的 push 到来时取消排队中的旧部署。
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          # command_timeout 给足首次镜像构建的时间（编译 + 下依赖可能较久）
+          command_timeout: 20m
+          script: |
+            set -e
+            cd "${{ secrets.PROJECT_PATH }}"
+
+            echo "==> 拉取最新代码"
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "==> 构建并重启容器"
+            docker compose up -d --build
+
+            echo "==> 清理悬空镜像"
+            docker image prune -f
+
+            echo "==> 健康检查"
+            # 用无鉴权的 Swagger 文档路由探活（见 cmd/server/main.go:192 注册的 /api/docs）
+            for i in $(seq 1 12); do
+              if curl -fsS http://127.0.0.1:3000/api/docs/index.html >/dev/null 2>&1; then
+                echo "✅ 服务健康检查通过"
+                exit 0
+              fi
+              echo "   等待服务就绪... ($i/12)"
+              sleep 5
+            done
+
+            echo "❌ 健康检查失败，输出最近日志："
+            docker compose logs --tail=80 app
+            exit 1
