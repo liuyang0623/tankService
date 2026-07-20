@@ -2,6 +2,8 @@
 comet_change: add-subscribe-msg-jump
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-20-add-subscribe-msg-jump
+status: final
 ---
 
 # 关注订阅消息跳转 — 技术设计
@@ -69,3 +71,4 @@ follow 关注事件
 ## Spec Patch
 
 无。delta spec 的验收场景（成功跳转 / page 空值兼容 / 现有行为不变）已在 open 阶段覆盖。
+

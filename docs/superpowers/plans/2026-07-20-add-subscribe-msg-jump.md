@@ -2,6 +2,7 @@
 change: add-subscribe-msg-jump
 design-doc: docs/superpowers/specs/2026-07-20-add-subscribe-msg-jump-design.md
 base-ref: 83f285da1f3d4645b2ef626e4bcd36f2c2794043
+archived-with: 2026-07-20-add-subscribe-msg-jump
 ---
 
 # 实施计划：关注订阅消息跳转（仅后端）
@@ -24,3 +25,4 @@ base-ref: 83f285da1f3d4645b2ef626e4bcd36f2c2794043
 
 - `go build ./...`
 - `go test ./internal/wechat/... ./internal/subscribepush/...`
+
