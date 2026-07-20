@@ -16,6 +16,7 @@ import (
 	_ "go-service/docs"
 	"go-service/internal/auth"
 	"go-service/internal/diary"
+	"go-service/internal/inspiration"
 	"go-service/internal/notebook"
 	"go-service/internal/follow"
 	"go-service/internal/interactions"
@@ -166,6 +167,21 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			authorized.PATCH("/notebooks/:id", notebookHandler.Update)
 			authorized.DELETE("/notebooks/:id", notebookHandler.Remove)
 
+			// Inspiration routes (require JWT) — 灵感 tab：解惑问答 + 运动计划
+			qaSvc := inspiration.NewQAService(db)
+			qaHandler := inspiration.NewQAHandler(qaSvc)
+			authorized.POST("/questions", qaHandler.CreateQuestion)
+			authorized.GET("/questions", qaHandler.ListQuestions)
+			authorized.GET("/questions/:id", qaHandler.GetQuestion)
+			authorized.POST("/questions/:id/answers", qaHandler.CreateAnswer)
+
+			sportSvc := inspiration.NewSportService(db)
+			sportHandler := inspiration.NewSportHandler(sportSvc)
+			authorized.GET("/sport-goals", sportHandler.ListGoals)
+			authorized.POST("/sport-goals", sportHandler.CreateGoal)
+			authorized.PATCH("/sport-goals/:id", sportHandler.UpdateGoal)
+			authorized.POST("/sport-goals/:id/checkin", sportHandler.Checkin)
+
 			// Upload routes (require JWT)
 		uploadSvc := upload.NewUpYunService(cfg.UpyunBucket, cfg.UpyunOperator, cfg.UpyunPassword, cfg.UpyunEndpoint, cfg.UpyunDomain)
 		uploadHandler := upload.NewUploadHandler(uploadSvc)
@@ -220,6 +236,10 @@ func main() {
 		&posts.Topic{},
 		&diary.Diary{},
 		&diary.DiaryImage{},
+		&inspiration.Question{},
+		&inspiration.Answer{},
+		&inspiration.SportGoal{},
+		&inspiration.SportRecord{},
 		&notebook.Notebook{},
 		&interactions.Comment{},
 		&interactions.Like{},
