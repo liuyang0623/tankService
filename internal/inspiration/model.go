@@ -15,6 +15,9 @@ type Question struct {
 	Title    string `gorm:"type:varchar(200)"`
 	Content  string `gorm:"type:text"`
 
+	// AcceptedAnswerID 是提问者采纳的回答 ID，nil 表示未采纳。
+	AcceptedAnswerID *uint `gorm:"index"`
+
 	Answers []Answer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE;"`
 }
 
@@ -34,6 +37,18 @@ type Answer struct {
 // TableName 返回 Answer 的表名。
 func (Answer) TableName() string {
 	return "answers"
+}
+
+// AnswerLike 记录某用户对某回答的点赞。(answer_id, user_id) 唯一，保证幂等。
+type AnswerLike struct {
+	gorm.Model
+	AnswerID uint `gorm:"not null;index:idx_answer_like,unique"`
+	UserID   uint `gorm:"not null;index:idx_answer_like,unique"`
+}
+
+// TableName 返回 AnswerLike 的表名。
+func (AnswerLike) TableName() string {
+	return "answer_likes"
 }
 
 // --- Models: 运动计划 ---
@@ -84,24 +99,36 @@ type CreateAnswerInput struct {
 	Content string `json:"content"`
 }
 
+// AnswerLikeResponse 是点赞/取消点赞后的响应。
+type AnswerLikeResponse struct {
+	AnswerID  uint `json:"answerId"`
+	Liked     bool `json:"liked"`     // 本次操作后是否处于已点赞状态
+	LikeCount int  `json:"likeCount"` // 该回答最新点赞数
+}
+
 // AnswerResponse 是回答的 API 响应格式。
 type AnswerResponse struct {
-	ID        uint      `json:"id"`
-	AuthorID  uint      `json:"authorId"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID         uint      `json:"id"`
+	AuthorID   uint      `json:"authorId"`
+	Content    string    `json:"content"`
+	LikeCount  int       `json:"likeCount"`
+	LikedByMe  bool      `json:"likedByMe"`
+	IsBest     bool      `json:"isBest"`     // 赞数最高（>0）的回答
+	IsAccepted bool      `json:"isAccepted"` // 被提问者采纳的回答
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 // QuestionResponse 是问题详情的 API 响应格式（含回答列表）。
 type QuestionResponse struct {
-	ID          uint             `json:"id"`
-	AuthorID    uint             `json:"authorId"`
-	Title       string           `json:"title"`
-	Content     string           `json:"content"`
-	AnswerCount int              `json:"answerCount"`
-	Answers     []AnswerResponse `json:"answers"`
-	CreatedAt   time.Time        `json:"createdAt"`
-	UpdatedAt   time.Time        `json:"updatedAt"`
+	ID               uint             `json:"id"`
+	AuthorID         uint             `json:"authorId"`
+	Title            string           `json:"title"`
+	Content          string           `json:"content"`
+	AnswerCount      int              `json:"answerCount"`
+	AcceptedAnswerID *uint            `json:"acceptedAnswerId,omitempty"`
+	Answers          []AnswerResponse `json:"answers"`
+	CreatedAt        time.Time        `json:"createdAt"`
+	UpdatedAt        time.Time        `json:"updatedAt"`
 }
 
 // QuestionListItem 是问题列表的简化响应。
@@ -152,6 +179,13 @@ type CheckinResponse struct {
 	TotalDays      int  `json:"totalDays"`
 	CheckedInToday bool `json:"checkedInToday"`
 	Awarded        bool `json:"awarded"` // 本次是否新增了打卡（false=同日重复）
+}
+
+// MonthRecordsResponse 是某目标某月的打卡日期列表（YYYY-MM-DD）。
+type MonthRecordsResponse struct {
+	Year  int      `json:"year"`
+	Month int      `json:"month"`
+	Dates []string `json:"dates"`
 }
 
 // --- 分页 ---

@@ -2,8 +2,10 @@ package inspiration
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -40,8 +42,10 @@ func parsePagination(c *gin.Context) (int, int) {
 type qaServiceIface interface {
 	CreateQuestion(ctx context.Context, userID uint, input CreateQuestionInput) (*QuestionResponse, error)
 	ListQuestions(ctx context.Context, page, limit int) (*PaginatedResult, error)
-	GetQuestion(ctx context.Context, id uint) (*QuestionResponse, error)
+	GetQuestion(ctx context.Context, id, userID uint) (*QuestionResponse, error)
 	CreateAnswer(ctx context.Context, questionID, userID uint, input CreateAnswerInput) (*AnswerResponse, error)
+	ToggleAnswerLike(ctx context.Context, questionID, answerID, userID uint) (*AnswerLikeResponse, error)
+	AcceptAnswer(ctx context.Context, questionID, answerID, userID uint) error
 }
 
 // QAHandler 处理解惑问答的 HTTP 请求。
@@ -98,7 +102,8 @@ func (h *QAHandler) ListQuestions(c *gin.Context) {
 
 // GetQuestion 获取问题详情（含回答）。
 func (h *QAHandler) GetQuestion(c *gin.Context) {
-	if _, ok := getUserID(c); !ok {
+	uid, ok := getUserID(c)
+	if !ok {
 		response.Unauthorized(c, "unauthorized")
 		return
 	}
@@ -109,7 +114,7 @@ func (h *QAHandler) GetQuestion(c *gin.Context) {
 		return
 	}
 
-	q, err := h.service.GetQuestion(c.Request.Context(), uint(id))
+	q, err := h.service.GetQuestion(c.Request.Context(), uint(id), uid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			response.Error(c, http.StatusNotFound, "question not found")
@@ -157,6 +162,71 @@ func (h *QAHandler) CreateAnswer(c *gin.Context) {
 	response.Success(c, a)
 }
 
+// ToggleAnswerLike 点赞/取消点赞某回答。
+func (h *QAHandler) ToggleAnswerLike(c *gin.Context) {
+	uid, ok := getUserID(c)
+	if !ok {
+		response.Unauthorized(c, "unauthorized")
+		return
+	}
+
+	qid, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "invalid question id")
+		return
+	}
+	aid, err := strconv.ParseUint(c.Param("aid"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "invalid answer id")
+		return
+	}
+
+	res, err := h.service.ToggleAnswerLike(c.Request.Context(), uint(qid), uint(aid), uid)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			response.Error(c, http.StatusNotFound, "answer not found")
+			return
+		}
+		response.InternalError(c, "server error")
+		return
+	}
+	response.Success(c, res)
+}
+
+// AcceptAnswer 由提问者采纳某回答。
+func (h *QAHandler) AcceptAnswer(c *gin.Context) {
+	uid, ok := getUserID(c)
+	if !ok {
+		response.Unauthorized(c, "unauthorized")
+		return
+	}
+
+	qid, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "invalid question id")
+		return
+	}
+	aid, err := strconv.ParseUint(c.Param("aid"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "invalid answer id")
+		return
+	}
+
+	err = h.service.AcceptAnswer(c.Request.Context(), uint(qid), uint(aid), uid)
+	if err != nil {
+		switch {
+		case errors.Is(err, errNotAuthor):
+			response.Error(c, http.StatusForbidden, "only the question author can accept answers")
+		case err == gorm.ErrRecordNotFound:
+			response.Error(c, http.StatusNotFound, "question or answer not found")
+		default:
+			response.InternalError(c, "server error")
+		}
+		return
+	}
+	response.Success(c, gin.H{"questionId": uint(qid), "acceptedAnswerId": uint(aid)})
+}
+
 // ===================== 运动计划 Handler =====================
 
 // sportServiceIface 抽象 SportService，便于 handler 注入与测试。
@@ -165,6 +235,7 @@ type sportServiceIface interface {
 	ListGoals(ctx context.Context, userID uint) ([]SportGoalResponse, error)
 	UpdateGoal(ctx context.Context, id, userID uint, input UpdateSportGoalInput) (*SportGoalResponse, error)
 	Checkin(ctx context.Context, id, userID uint) (*CheckinResponse, error)
+	ListMonthRecords(ctx context.Context, goalID, userID uint, year, month int) (*MonthRecordsResponse, error)
 }
 
 // SportHandler 处理运动计划的 HTTP 请求。
@@ -275,4 +346,42 @@ func (h *SportHandler) Checkin(c *gin.Context) {
 		return
 	}
 	response.Success(c, result)
+}
+
+// ListMonthRecords 返回某目标指定月份的打卡日期列表。
+// query ?month=YYYY-MM，缺省当月。
+func (h *SportHandler) ListMonthRecords(c *gin.Context) {
+	uid, ok := getUserID(c)
+	if !ok {
+		response.Unauthorized(c, "unauthorized")
+		return
+	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "invalid goal id")
+		return
+	}
+
+	now := time.Now()
+	year, month := now.Year(), int(now.Month())
+	if m := c.Query("month"); m != "" {
+		parsed, perr := time.Parse("2006-01", m)
+		if perr != nil {
+			response.BadRequest(c, "invalid month format, expect YYYY-MM")
+			return
+		}
+		year, month = parsed.Year(), int(parsed.Month())
+	}
+
+	res, err := h.service.ListMonthRecords(c.Request.Context(), uint(id), uid, year, month)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			response.Error(c, http.StatusNotFound, "goal not found")
+			return
+		}
+		response.InternalError(c, "server error")
+		return
+	}
+	response.Success(c, res)
 }

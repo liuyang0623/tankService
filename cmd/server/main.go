@@ -174,6 +174,8 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			authorized.GET("/questions", qaHandler.ListQuestions)
 			authorized.GET("/questions/:id", qaHandler.GetQuestion)
 			authorized.POST("/questions/:id/answers", qaHandler.CreateAnswer)
+			authorized.POST("/questions/:id/answers/:aid/like", qaHandler.ToggleAnswerLike)
+			authorized.POST("/questions/:id/accept/:aid", qaHandler.AcceptAnswer)
 
 			sportSvc := inspiration.NewSportService(db)
 			sportHandler := inspiration.NewSportHandler(sportSvc)
@@ -181,6 +183,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			authorized.POST("/sport-goals", sportHandler.CreateGoal)
 			authorized.PATCH("/sport-goals/:id", sportHandler.UpdateGoal)
 			authorized.POST("/sport-goals/:id/checkin", sportHandler.Checkin)
+			authorized.GET("/sport-goals/:id/records", sportHandler.ListMonthRecords)
 
 			// Upload routes (require JWT)
 		uploadSvc := upload.NewUpYunService(cfg.UpyunBucket, cfg.UpyunOperator, cfg.UpyunPassword, cfg.UpyunEndpoint, cfg.UpyunDomain)
@@ -238,6 +241,7 @@ func main() {
 		&diary.DiaryImage{},
 		&inspiration.Question{},
 		&inspiration.Answer{},
+		&inspiration.AnswerLike{},
 		&inspiration.SportGoal{},
 		&inspiration.SportRecord{},
 		&notebook.Notebook{},

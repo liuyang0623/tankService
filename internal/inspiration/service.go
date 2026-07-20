@@ -2,12 +2,17 @@ package inspiration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"gorm.io/gorm"
 )
+
+// errNotAuthor 表示当前用户不是问题的提问者，无权采纳回答。
+var errNotAuthor = errors.New("unauthorized: not the question author")
 
 // ===================== 解惑问答 Service =====================
 
@@ -97,8 +102,9 @@ func (s *QAService) ListQuestions(ctx context.Context, page, limit int) (*Pagina
 	}, nil
 }
 
-// GetQuestion 返回问题详情与全部回答（正序）。
-func (s *QAService) GetQuestion(ctx context.Context, id uint) (*QuestionResponse, error) {
+// GetQuestion 返回问题详情与全部回答。回答按 采纳置顶 → 赞数降序 → 早答优先 排序，
+// 并标记最佳（赞数最高且 >0）与采纳（提问者选定）。userID 用于判断当前用户是否已点赞。
+func (s *QAService) GetQuestion(ctx context.Context, id, userID uint) (*QuestionResponse, error) {
 	var q Question
 	err := s.db.WithContext(ctx).
 		Preload("Answers", func(db *gorm.DB) *gorm.DB {
@@ -112,25 +118,39 @@ func (s *QAService) GetQuestion(ctx context.Context, id uint) (*QuestionResponse
 		return nil, fmt.Errorf("find question: %w", err)
 	}
 
+	answerIDs := make([]uint, len(q.Answers))
+	for i, a := range q.Answers {
+		answerIDs[i] = a.ID
+	}
+	likeCounts := s.answerLikeCounts(ctx, answerIDs)
+	likedByMe := s.answerLikedByUser(ctx, answerIDs, userID)
+
 	answers := make([]AnswerResponse, len(q.Answers))
 	for i, a := range q.Answers {
 		answers[i] = AnswerResponse{
-			ID:        a.ID,
-			AuthorID:  a.AuthorID,
-			Content:   a.Content,
-			CreatedAt: a.CreatedAt,
+			ID:         a.ID,
+			AuthorID:   a.AuthorID,
+			Content:    a.Content,
+			LikeCount:  likeCounts[a.ID],
+			LikedByMe:  likedByMe[a.ID],
+			IsAccepted: q.AcceptedAnswerID != nil && *q.AcceptedAnswerID == a.ID,
+			CreatedAt:  a.CreatedAt,
 		}
 	}
 
+	markBestAnswer(answers)
+	sortAnswers(answers)
+
 	return &QuestionResponse{
-		ID:          q.ID,
-		AuthorID:    q.AuthorID,
-		Title:       q.Title,
-		Content:     q.Content,
-		AnswerCount: len(answers),
-		Answers:     answers,
-		CreatedAt:   q.CreatedAt,
-		UpdatedAt:   q.UpdatedAt,
+		ID:               q.ID,
+		AuthorID:         q.AuthorID,
+		Title:            q.Title,
+		Content:          q.Content,
+		AnswerCount:      len(answers),
+		AcceptedAnswerID: q.AcceptedAnswerID,
+		Answers:          answers,
+		CreatedAt:        q.CreatedAt,
+		UpdatedAt:        q.UpdatedAt,
 	}, nil
 }
 
@@ -198,6 +218,159 @@ func questionIDs(questions []Question) []uint {
 		ids[i] = q.ID
 	}
 	return ids
+}
+
+// ToggleAnswerLike 切换当前用户对某回答的点赞状态，返回操作后是否已点赞及最新赞数。
+// 通过唯一索引 (answer_id, user_id) 保证并发幂等。
+func (s *QAService) ToggleAnswerLike(ctx context.Context, questionID, answerID, userID uint) (*AnswerLikeResponse, error) {
+	// 校验回答存在且属于该问题。
+	var a Answer
+	if err := s.db.WithContext(ctx).First(&a, answerID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, fmt.Errorf("find answer for like: %w", err)
+	}
+	if a.QuestionID != questionID {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	var liked bool
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var existing AnswerLike
+		err := tx.Where("answer_id = ? AND user_id = ?", answerID, userID).First(&existing).Error
+		switch {
+		case err == nil:
+			// 已点赞 → 取消。
+			if err := tx.Delete(&existing).Error; err != nil {
+				return err
+			}
+			liked = false
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			// 未点赞 → 新建。
+			if err := tx.Create(&AnswerLike{AnswerID: answerID, UserID: userID}).Error; err != nil {
+				return err
+			}
+			liked = true
+		default:
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("toggle answer like: %w", err)
+	}
+
+	var count int64
+	s.db.WithContext(ctx).Model(&AnswerLike{}).Where("answer_id = ?", answerID).Count(&count)
+
+	return &AnswerLikeResponse{AnswerID: answerID, Liked: liked, LikeCount: int(count)}, nil
+}
+
+// AcceptAnswer 由提问者采纳某回答。非提问者返回 errNotAuthor；允许重复采纳覆盖。
+func (s *QAService) AcceptAnswer(ctx context.Context, questionID, answerID, userID uint) error {
+	var q Question
+	if err := s.db.WithContext(ctx).First(&q, questionID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return gorm.ErrRecordNotFound
+		}
+		return fmt.Errorf("find question for accept: %w", err)
+	}
+	if q.AuthorID != userID {
+		return errNotAuthor
+	}
+
+	// 校验回答存在且属于该问题。
+	var a Answer
+	if err := s.db.WithContext(ctx).First(&a, answerID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return gorm.ErrRecordNotFound
+		}
+		return fmt.Errorf("find answer for accept: %w", err)
+	}
+	if a.QuestionID != questionID {
+		return gorm.ErrRecordNotFound
+	}
+
+	if err := s.db.WithContext(ctx).Model(&Question{}).
+		Where("id = ?", questionID).
+		Update("accepted_answer_id", answerID).Error; err != nil {
+		return fmt.Errorf("accept answer: %w", err)
+	}
+	return nil
+}
+
+// answerLikeCounts 返回 answerID -> 点赞数 的映射，一次聚合查询避免 N+1。
+func (s *QAService) answerLikeCounts(ctx context.Context, ids []uint) map[uint]int {
+	result := make(map[uint]int, len(ids))
+	if len(ids) == 0 {
+		return result
+	}
+	type row struct {
+		AnswerID uint
+		Cnt      int
+	}
+	var rows []row
+	s.db.WithContext(ctx).
+		Model(&AnswerLike{}).
+		Select("answer_id, count(*) as cnt").
+		Where("answer_id IN ?", ids).
+		Group("answer_id").
+		Scan(&rows)
+	for _, r := range rows {
+		result[r.AnswerID] = r.Cnt
+	}
+	return result
+}
+
+// answerLikedByUser 返回 answerID -> 当前用户是否已点赞 的映射。
+func (s *QAService) answerLikedByUser(ctx context.Context, ids []uint, userID uint) map[uint]bool {
+	result := make(map[uint]bool, len(ids))
+	if len(ids) == 0 || userID == 0 {
+		return result
+	}
+	var likedIDs []uint
+	s.db.WithContext(ctx).
+		Model(&AnswerLike{}).
+		Where("answer_id IN ? AND user_id = ?", ids, userID).
+		Pluck("answer_id", &likedIDs)
+	for _, id := range likedIDs {
+		result[id] = true
+	}
+	return result
+}
+
+// markBestAnswer 在赞数 >0 的回答中，把赞数最高（并列取最早）的一条标记为最佳。
+// 纯函数，就地修改切片，便于单测。
+func markBestAnswer(answers []AnswerResponse) {
+	bestIdx := -1
+	for i := range answers {
+		if answers[i].LikeCount <= 0 {
+			continue
+		}
+		if bestIdx == -1 ||
+			answers[i].LikeCount > answers[bestIdx].LikeCount ||
+			(answers[i].LikeCount == answers[bestIdx].LikeCount && answers[i].CreatedAt.Before(answers[bestIdx].CreatedAt)) {
+			bestIdx = i
+		}
+	}
+	if bestIdx >= 0 {
+		answers[bestIdx].IsBest = true
+	}
+}
+
+// sortAnswers 按 采纳置顶 → 赞数降序 → 早答优先 排序。纯函数，便于单测。
+func sortAnswers(answers []AnswerResponse) {
+	sort.SliceStable(answers, func(i, j int) bool {
+		a, b := answers[i], answers[j]
+		if a.IsAccepted != b.IsAccepted {
+			return a.IsAccepted // 采纳者置顶
+		}
+		if a.LikeCount != b.LikeCount {
+			return a.LikeCount > b.LikeCount
+		}
+		return a.CreatedAt.Before(b.CreatedAt)
+	})
 }
 
 // ===================== 运动计划 Service =====================
@@ -341,6 +514,38 @@ func (s *SportService) Checkin(ctx context.Context, id, userID uint) (*CheckinRe
 		CheckedInToday: true,
 		Awarded:        awarded,
 	}, nil
+}
+
+// ListMonthRecords 返回某目标在指定自然月（year-month）的打卡日期列表（YYYY-MM-DD）。
+// 仅目标所有者可查询；只读 sport_records，不改任何状态。
+func (s *SportService) ListMonthRecords(ctx context.Context, goalID, userID uint, year, month int) (*MonthRecordsResponse, error) {
+	// 校验目标存在且属于该用户。
+	var goal SportGoal
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).First(&goal, goalID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, fmt.Errorf("find goal for records: %w", err)
+	}
+
+	loc := time.Now().Location()
+	start := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
+	end := start.AddDate(0, 1, 0) // 次月 1 号 00:00，左闭右开
+
+	var records []SportRecord
+	if err := s.db.WithContext(ctx).
+		Where("goal_id = ? AND checkin_date >= ? AND checkin_date < ?", goalID, start, end).
+		Order("checkin_date ASC").
+		Find(&records).Error; err != nil {
+		return nil, fmt.Errorf("list month records: %w", err)
+	}
+
+	dates := make([]string, len(records))
+	for i, r := range records {
+		dates[i] = r.CheckinDate.In(loc).Format("2006-01-02")
+	}
+
+	return &MonthRecordsResponse{Year: year, Month: month, Dates: dates}, nil
 }
 
 // toGoalResponse 将 SportGoal 转为响应 DTO，并根据当日判断是否已打卡。
