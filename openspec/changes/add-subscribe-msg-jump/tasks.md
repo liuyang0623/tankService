@@ -18,3 +18,8 @@
 ## 4. 验证
 
 - [x] 4.1 运行 `go build ./...` 与 `go test ./internal/wechat/... ./internal/subscribepush/...`，确认全绿
+
+<!-- code review (standard): Ready to proceed. 无 Critical/Important。
+     2 条 Minor 接受不修（既有代码风格，非本次引入）：
+     M1 测试中 r.Body.Read 未检查返回值（小体积 JSON 实践稳定）；
+     M2 WithPage 断言用 strings.Contains 而非 JSON 解析（与既有测试风格一致）。 -->
