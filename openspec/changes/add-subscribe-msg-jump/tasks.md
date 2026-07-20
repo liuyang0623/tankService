@@ -1,0 +1,20 @@
+# Tasks: 新增关注订阅消息跳转能力（仅后端）
+
+## 1. 扩展微信订阅消息发送支持 page
+
+- [x] 1.1 修改 `internal/wechat/client.go` 的 `SendSubscribeMessage`：新增 `page string` 参数（置于 `data` 之后），仅当 `page != ""` 时写入请求 body 的 `page` 字段
+- [x] 1.2 更新 `internal/subscribepush/pusher.go` 中 `sender` 接口定义，使其方法签名与新的 `SendSubscribeMessage` 一致
+
+## 2. Pusher 下发关注通知时携带跳转页
+
+- [x] 2.1 修改 `internal/subscribepush/pusher.go` 的 `pushFollowSync`：调用 sender 时传入跳转页常量 `pages/notifications/index`
+- [x] 2.2 将跳转页路径定义为包内常量，便于后续按通知类型扩展
+
+## 3. 测试
+
+- [x] 3.1 更新 `internal/wechat/client_test.go`：断言 `page` 非空时请求 body 含 `page` 字段、为空时不含
+- [x] 3.2 更新 `internal/subscribepush/pusher_test.go`：断言关注推送时传入的 page 为 `pages/notifications/index`
+
+## 4. 验证
+
+- [x] 4.1 运行 `go build ./...` 与 `go test ./internal/wechat/... ./internal/subscribepush/...`，确认全绿

@@ -105,12 +105,44 @@ func TestSendSubscribeMessage_Success(t *testing.T) {
 
 	c := newTestClient(srv.URL)
 	data := map[string]any{"thing1": map[string]string{"value": "小明"}}
-	err := c.SendSubscribeMessage(context.Background(), "openid-123", "tpl-abc", data)
+	err := c.SendSubscribeMessage(context.Background(), "openid-123", "tpl-abc", data, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(gotBody, "openid-123") || !strings.Contains(gotBody, "tpl-abc") {
 		t.Errorf("request body missing touser/template_id: %s", gotBody)
+	}
+	if strings.Contains(gotBody, "\"page\"") {
+		t.Errorf("empty page should not appear in body: %s", gotBody)
+	}
+}
+
+func TestSendSubscribeMessage_WithPage(t *testing.T) {
+	var gotBody string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/cgi-bin/token") {
+			w.Write([]byte(`{"access_token":"TOK","expires_in":7200}`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/cgi-bin/message/subscribe/send") {
+			buf := make([]byte, r.ContentLength)
+			r.Body.Read(buf)
+			gotBody = string(buf)
+			w.Write([]byte(`{"errcode":0,"errmsg":"ok"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	data := map[string]any{"thing1": map[string]string{"value": "小明"}}
+	err := c.SendSubscribeMessage(context.Background(), "openid-123", "tpl-abc", data, "pages/notifications/index")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(gotBody, "\"page\"") || !strings.Contains(gotBody, "pages/notifications/index") {
+		t.Errorf("request body missing page field: %s", gotBody)
 	}
 }
 
@@ -125,7 +157,7 @@ func TestSendSubscribeMessage_ErrcodeFails(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv.URL)
-	err := c.SendSubscribeMessage(context.Background(), "openid-123", "tpl-abc", map[string]any{})
+	err := c.SendSubscribeMessage(context.Background(), "openid-123", "tpl-abc", map[string]any{}, "")
 	if err == nil {
 		t.Error("expected error on errcode 43101, got nil")
 	}

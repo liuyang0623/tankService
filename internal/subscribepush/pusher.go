@@ -10,8 +10,12 @@ import (
 
 // sender 抽象微信订阅消息发送（由 internal/wechat.Client 满足）。
 type sender interface {
-	SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any) error
+	SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any, page string) error
 }
+
+// notificationPage 是关注订阅消息点击后跳转的小程序页面路径（系统通知列表页）。
+// 对应前端 tankingMiniprogram 的 app.config.ts 中注册的页面。
+const notificationPage = "pages/notifications/index"
 
 // store 抽象订阅目标的数据查询（openid、配额、昵称）与配额扣减。
 type store interface {
@@ -72,7 +76,7 @@ func (p *Pusher) pushFollowSync(ctx context.Context, targetID, actorID uint) {
 		"time2":  map[string]string{"value": time.Now().Format("2006-01-02 15:04")},
 	}
 
-	if err := p.sender.SendSubscribeMessage(ctx, openid, p.tplID, data); err != nil {
+	if err := p.sender.SendSubscribeMessage(ctx, openid, p.tplID, data, notificationPage); err != nil {
 		log.Printf("subscribe push: send to %d failed: %v", targetID, err)
 		return
 	}

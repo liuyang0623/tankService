@@ -90,7 +90,8 @@ type sendResponse struct {
 
 // SendSubscribeMessage 发送一条订阅消息给 openid 对应用户。
 // data 按微信模板字段结构组装，如 {"thing1": {"value": "xxx"}}。
-func (c *Client) SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any) error {
+// page 为点击订阅消息后打开的小程序页面路径；为空时不写入该字段（微信 page 为可选）。
+func (c *Client) SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any, page string) error {
 	token, err := c.GetAccessToken(ctx)
 	if err != nil {
 		return err
@@ -100,6 +101,9 @@ func (c *Client) SendSubscribeMessage(ctx context.Context, openid, tplID string,
 		"touser":      openid,
 		"template_id": tplID,
 		"data":        data,
+	}
+	if page != "" {
+		body["page"] = page
 	}
 	raw, err := json.Marshal(body)
 	if err != nil {

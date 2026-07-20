@@ -14,14 +14,16 @@ type fakeSender struct {
 	openid  string
 	tplID   string
 	data    map[string]any
+	page    string
 	sendErr error
 }
 
-func (f *fakeSender) SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any) error {
+func (f *fakeSender) SendSubscribeMessage(ctx context.Context, openid, tplID string, data map[string]any, page string) error {
 	f.called = true
 	f.openid = openid
 	f.tplID = tplID
 	f.data = data
+	f.page = page
 	return f.sendErr
 }
 
@@ -59,6 +61,9 @@ func TestPush_WithQuota_Sends(t *testing.T) {
 	}
 	if sender.openid != "openid-a" || sender.tplID != "tpl-123" {
 		t.Errorf("wrong openid/tpl: %s / %s", sender.openid, sender.tplID)
+	}
+	if sender.page != "pages/notifications/index" {
+		t.Errorf("expected jump page pages/notifications/index, got %q", sender.page)
 	}
 	if !store.decrCalled {
 		t.Error("expected quota decremented after send")
