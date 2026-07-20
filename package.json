@@ -13,6 +13,7 @@
     "tidy": "go mod tidy"
   },
   "dependencies": {
-    "@fission-ai/openspec": "^1.6.0"
+    "@fission-ai/openspec": "^1.6.0",
+    "@rpamis/comet": "^0.4.0-beta.6"
   }
 }
