@@ -20,8 +20,8 @@
 
 ## 4. 前端对接（另仓 tankingMiniprogram，本仓仅记录约定）
 
-- [ ] 4.1 启动流程拉取 `GET /api/v1/app-config`，按 `data.auditMode` 控制互动板块渲染
-- [ ] 4.2 实现降级兜底：请求超时/失败/解析失败时按 `auditMode=true`（审核模式）处理
+- [x] 4.1 启动流程拉取 `GET /api/v1/app-config`，按 `data.auditMode` 控制互动板块渲染 —— 本仓无实现，约定已入 README，实现跟踪在 tankingMiniprogram 仓
+- [x] 4.2 实现降级兜底：请求超时/失败/解析失败时按 `auditMode=true`（审核模式）处理 —— 本仓无实现，约定已入 README，实现跟踪在 tankingMiniprogram 仓
 
 ## 5. 收尾
 
