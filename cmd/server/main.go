@@ -18,11 +18,11 @@ import (
 	"go-service/internal/appconfig"
 	"go-service/internal/auth"
 	"go-service/internal/diary"
-	"go-service/internal/inspiration"
-	"go-service/internal/notebook"
 	"go-service/internal/follow"
+	"go-service/internal/inspiration"
 	"go-service/internal/interactions"
 	"go-service/internal/message"
+	"go-service/internal/notebook"
 	"go-service/internal/notification"
 	"go-service/internal/posts"
 	"go-service/internal/subscribepush"
@@ -118,6 +118,9 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		authorized.POST("/users/:id/follow", followHandler.ToggleFollow)
 		authorized.POST("/users/subscribe/follow", userHandler.SubscribeFollow)
 
+		// App config 写接口（先 JWT 校验登录态，再经管理员白名单中间件鉴权）
+		authorized.PUT("/app-config", appconfig.AdminOnlyMiddleware(db, cfg.AdminOpenids), appConfigHandler.UpdateConfig)
+
 		// Optional-auth user routes (personalize isFollowing when logged in)
 		optionalUser := v1.Group("")
 		optionalUser.Use(middleware.OptionalJWTMiddleware(cfg.JWTSecret))
@@ -158,41 +161,41 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		authorized.DELETE("/comments/:id", interactionHandler.DeleteComment)
 
 		// Diary routes (require JWT — all private, only self)
-			diarySvc := diary.NewDiaryService(db)
-			diaryHandler := diary.NewDiaryHandler(diarySvc)
-			authorized.POST("/diaries", diaryHandler.Create)
-			authorized.GET("/diaries", diaryHandler.FindMine)
-			authorized.GET("/diaries/:id", diaryHandler.FindOne)
-			authorized.PATCH("/diaries/:id", diaryHandler.Update)
-			authorized.DELETE("/diaries/:id", diaryHandler.Remove)
+		diarySvc := diary.NewDiaryService(db)
+		diaryHandler := diary.NewDiaryHandler(diarySvc)
+		authorized.POST("/diaries", diaryHandler.Create)
+		authorized.GET("/diaries", diaryHandler.FindMine)
+		authorized.GET("/diaries/:id", diaryHandler.FindOne)
+		authorized.PATCH("/diaries/:id", diaryHandler.Update)
+		authorized.DELETE("/diaries/:id", diaryHandler.Remove)
 
-			// Notebook routes (require JWT — all private, only self)
-			notebookSvc := notebook.NewNotebookService(db)
-			notebookHandler := notebook.NewNotebookHandler(notebookSvc)
-			authorized.POST("/notebooks", notebookHandler.Create)
-			authorized.GET("/notebooks", notebookHandler.FindMine)
-			authorized.PATCH("/notebooks/:id", notebookHandler.Update)
-			authorized.DELETE("/notebooks/:id", notebookHandler.Remove)
+		// Notebook routes (require JWT — all private, only self)
+		notebookSvc := notebook.NewNotebookService(db)
+		notebookHandler := notebook.NewNotebookHandler(notebookSvc)
+		authorized.POST("/notebooks", notebookHandler.Create)
+		authorized.GET("/notebooks", notebookHandler.FindMine)
+		authorized.PATCH("/notebooks/:id", notebookHandler.Update)
+		authorized.DELETE("/notebooks/:id", notebookHandler.Remove)
 
-			// Inspiration routes (require JWT) — 灵感 tab：解惑问答 + 运动计划
-			qaSvc := inspiration.NewQAService(db)
-			qaHandler := inspiration.NewQAHandler(qaSvc)
-			authorized.POST("/questions", qaHandler.CreateQuestion)
-			authorized.GET("/questions", qaHandler.ListQuestions)
-			authorized.GET("/questions/:id", qaHandler.GetQuestion)
-			authorized.POST("/questions/:id/answers", qaHandler.CreateAnswer)
-			authorized.POST("/questions/:id/answers/:aid/like", qaHandler.ToggleAnswerLike)
-			authorized.POST("/questions/:id/accept/:aid", qaHandler.AcceptAnswer)
+		// Inspiration routes (require JWT) — 灵感 tab：解惑问答 + 运动计划
+		qaSvc := inspiration.NewQAService(db)
+		qaHandler := inspiration.NewQAHandler(qaSvc)
+		authorized.POST("/questions", qaHandler.CreateQuestion)
+		authorized.GET("/questions", qaHandler.ListQuestions)
+		authorized.GET("/questions/:id", qaHandler.GetQuestion)
+		authorized.POST("/questions/:id/answers", qaHandler.CreateAnswer)
+		authorized.POST("/questions/:id/answers/:aid/like", qaHandler.ToggleAnswerLike)
+		authorized.POST("/questions/:id/accept/:aid", qaHandler.AcceptAnswer)
 
-			sportSvc := inspiration.NewSportService(db)
-			sportHandler := inspiration.NewSportHandler(sportSvc)
-			authorized.GET("/sport-goals", sportHandler.ListGoals)
-			authorized.POST("/sport-goals", sportHandler.CreateGoal)
-			authorized.PATCH("/sport-goals/:id", sportHandler.UpdateGoal)
-			authorized.POST("/sport-goals/:id/checkin", sportHandler.Checkin)
-			authorized.GET("/sport-goals/:id/records", sportHandler.ListMonthRecords)
+		sportSvc := inspiration.NewSportService(db)
+		sportHandler := inspiration.NewSportHandler(sportSvc)
+		authorized.GET("/sport-goals", sportHandler.ListGoals)
+		authorized.POST("/sport-goals", sportHandler.CreateGoal)
+		authorized.PATCH("/sport-goals/:id", sportHandler.UpdateGoal)
+		authorized.POST("/sport-goals/:id/checkin", sportHandler.Checkin)
+		authorized.GET("/sport-goals/:id/records", sportHandler.ListMonthRecords)
 
-			// Upload routes (require JWT)
+		// Upload routes (require JWT)
 		uploadSvc := upload.NewUpYunService(cfg.UpyunBucket, cfg.UpyunOperator, cfg.UpyunPassword, cfg.UpyunEndpoint, cfg.UpyunDomain)
 		uploadHandler := upload.NewUploadHandler(uploadSvc)
 		authorized.POST("/upload/image", uploadHandler.UploadImage)

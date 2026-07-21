@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -12,11 +13,16 @@ import (
 
 // mockAppConfigService 实现 appConfigServiceIface 供 handler 测试。
 type mockAppConfigService struct {
-	getFn func(ctx context.Context) (*AppConfigResponse, error)
+	getFn    func(ctx context.Context) (*AppConfigResponse, error)
+	updateFn func(ctx context.Context, auditMode bool) error
 }
 
 func (m *mockAppConfigService) GetConfig(ctx context.Context) (*AppConfigResponse, error) {
 	return m.getFn(ctx)
+}
+
+func (m *mockAppConfigService) UpdateAuditMode(ctx context.Context, auditMode bool) error {
+	return m.updateFn(ctx, auditMode)
 }
 
 func setupTest(mock *mockAppConfigService) *gin.Engine {
@@ -92,5 +98,74 @@ func TestGetConfig_ServiceError_Returns500(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
+	}
+}
+
+// setupPutTest 构造仅挂 PUT handler 的引擎（不含鉴权中间件，聚焦 handler 行为）。
+func setupPutTest(mock *mockAppConfigService) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	h := &AppConfigHandler{service: mock}
+	r := gin.New()
+	r.PUT("/app-config", h.UpdateConfig)
+	return r
+}
+
+// TestUpdateConfig_Success 验证合法请求体更新成功并回读最新配置。
+func TestUpdateConfig_Success(t *testing.T) {
+	var gotAuditMode bool
+	r := setupPutTest(&mockAppConfigService{
+		updateFn: func(ctx context.Context, auditMode bool) error {
+			gotAuditMode = auditMode
+			return nil
+		},
+		getFn: func(ctx context.Context) (*AppConfigResponse, error) {
+			return &AppConfigResponse{AuditMode: true}, nil
+		},
+	})
+	req := httptest.NewRequest("PUT", "/app-config", strings.NewReader(`{"auditMode":true}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if !gotAuditMode {
+		t.Errorf("expected service to receive auditMode=true")
+	}
+}
+
+// TestUpdateConfig_MissingAuditMode_Returns400 验证缺 auditMode 字段时返回 400。
+func TestUpdateConfig_MissingAuditMode_Returns400(t *testing.T) {
+	r := setupPutTest(&mockAppConfigService{
+		updateFn: func(ctx context.Context, auditMode bool) error {
+			t.Fatal("update should not be called when auditMode is missing")
+			return nil
+		},
+	})
+	req := httptest.NewRequest("PUT", "/app-config", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestUpdateConfig_ServiceError_Returns500 验证 update service 出错时返回 500。
+func TestUpdateConfig_ServiceError_Returns500(t *testing.T) {
+	r := setupPutTest(&mockAppConfigService{
+		updateFn: func(ctx context.Context, auditMode bool) error {
+			return context.DeadlineExceeded
+		},
+	})
+	req := httptest.NewRequest("PUT", "/app-config", strings.NewReader(`{"auditMode":false}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d: %s", w.Code, w.Body.String())
 	}
 }

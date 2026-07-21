@@ -33,6 +33,16 @@ func (s *AppConfigService) GetConfig(ctx context.Context) (*AppConfigResponse, e
 	return &AppConfigResponse{AuditMode: cfg.AuditMode}, nil
 }
 
+// UpdateAuditMode 更新单行配置的 audit_mode。
+// 单行不存在时创建（upsert 语义），保证接口在表尚未 seed 时也能写入。
+func (s *AppConfigService) UpdateAuditMode(ctx context.Context, auditMode bool) error {
+	cfg := AppConfig{ID: singletonID, AuditMode: auditMode}
+	if err := s.db.WithContext(ctx).Save(&cfg).Error; err != nil {
+		return fmt.Errorf("update audit mode: %w", err)
+	}
+	return nil
+}
+
 // Seed 幂等地插入种子配置行（audit_mode=false）。
 // 仅当单行不存在时插入，已存在则不覆盖运营已切换的值。
 func (s *AppConfigService) Seed(ctx context.Context) error {
