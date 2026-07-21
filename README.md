@@ -33,6 +33,7 @@
 │   ├── notebook/        # 日记本
 │   ├── wechat/          # 微信服务端能力（access_token 缓存 + 订阅消息发送）
 │   ├── subscribepush/   # 关注事件 → 微信订阅消息推送（配额管理）
+│   ├── appconfig/       # 全局应用配置下发（审核模式开关，只读免鉴权）
 │   └── upload/          # 文件上传
 ├── pkg/                 # response/config/database/middleware 等公共包
 ├── openspec/            # 需求规格与 change 归档（comet 工作流）
@@ -130,6 +131,7 @@ http://localhost:3000/api/docs/index.html
 | 方法 | 路径 | 说明 | 是否需要 JWT |
 |------|------|------|:---:|
 | `POST` | `/api/v1/auth/wechat/login` | 微信小程序登录 | ✗ |
+| `GET` | `/api/v1/app-config` | 全局应用配置下发（含 `auditMode` 审核开关） | ✗ |
 | `GET` | `/api/v1/users/:id` | 获取用户信息 | ✗ |
 | `GET` | `/api/v1/users/profile` | 获取当前用户资料 | ✓ |
 | `PATCH` | `/api/v1/users/profile` | 更新用户资料 | ✓ |
@@ -159,3 +161,32 @@ http://localhost:3000/api/docs/index.html
 | `POST` | `/api/v1/notifications/read` | 通知整体标记已读 | ✓ |
 | `GET` | `/api/v1/notifications/unread-count` | 未读数 + 最新摘要 | ✓ |
 | `GET/POST/PATCH/DELETE` | `/api/v1/diaries`、`/api/v1/notebooks` | 日记 / 日记本 CRUD | ✓ |
+
+## 审核模式开关（app-config）
+
+小程序送审期间需临时隐藏点赞、采纳、灵感互动等 UGC/社交板块以规避审核红线；审核通过后恢复。后端通过只读接口 `GET /api/v1/app-config` 下发全局开关，前端启动时拉取，**改开关只需更新一行数据库记录，不依赖前后端发版即时生效**。
+
+### 接口契约
+
+- **路径**：`GET /api/v1/app-config`（免鉴权，登录前即可调用）
+- **响应**：`{ "data": { "auditMode": <bool> }, "code": 200, "message": "success" }`
+- **`auditMode`**：`true` = 审核模式（前端隐藏/降级互动板块）；`false` = 正常模式（全功能开放）
+- **种子默认**：`app_config` 表通过 `AutoMigrate` 建表，首次启动 seed 一行 `audit_mode = false`；表为空时接口也返回 `auditMode = false`，不报错
+
+### 运营切换步骤
+
+开关值存于单行表 `app_config` 的 `audit_mode` 列，直接改库即时生效，无需重启服务或前端发版：
+
+```sql
+-- 送审前置为审核模式（隐藏互动板块）
+UPDATE app_config SET audit_mode = true;
+
+-- 审核通过后恢复正常模式（放开全功能）
+UPDATE app_config SET audit_mode = false;
+```
+
+### 降级约定（前端）
+
+- **前端兜底默认 = `true`（审核模式）**：接口超时、网络失败或响应解析失败时，前端 MUST 按审核模式处理，宁可多藏不可漏出。
+- **后端种子默认 = `false`（正常模式）**：后端在线时返回数据库真实值。二者不冲突——后端健康报真实状态，后端不可达时前端自行假设审核模式。
+- 前端对接实现在另仓 `tankingMiniprogram`：启动流程拉取本接口，按 `data.auditMode` 控制互动板块渲染并实现上述兜底。

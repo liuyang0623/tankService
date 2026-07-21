@@ -11,9 +11,11 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	_ "go-service/docs"
+	"go-service/internal/appconfig"
 	"go-service/internal/auth"
 	"go-service/internal/diary"
 	"go-service/internal/inspiration"
@@ -83,6 +85,11 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		authSvc := auth.NewAuthService(db, cfg.JWTSecret, cfg.WechatAppID, cfg.WechatSecret)
 		authHandler := auth.NewAuthHandler(authSvc)
 		v1.POST("/auth/wechat/login", authHandler.WechatLogin)
+
+		// App config route (免鉴权：启动阶段/登录前调用)
+		appConfigSvc := appconfig.NewAppConfigService(db)
+		appConfigHandler := appconfig.NewAppConfigHandler(appConfigSvc)
+		v1.GET("/app-config", appConfigHandler.GetConfig)
 
 		// User routes
 		userSvc := users.NewUserService(db)
@@ -252,8 +259,14 @@ func main() {
 		&message.Conversation{},
 		&message.Message{},
 		&notification.Notification{},
+		&appconfig.AppConfig{},
 	); err != nil {
 		log.Fatalf("failed to auto migrate database: %v", err)
+	}
+
+	// Seed 单行应用配置（幂等，仅当表空时插入 audit_mode=false）
+	if err := appconfig.NewAppConfigService(database.DB).Seed(context.Background()); err != nil {
+		log.Fatalf("failed to seed app config: %v", err)
 	}
 
 	// 4. Start the HTTP server
