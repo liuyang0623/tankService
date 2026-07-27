@@ -44,7 +44,7 @@ func TestUserHandler_SubscribeFollow_Success(t *testing.T) {
 			return nil
 		},
 	}
-	h := &UserHandler{service: m}
+	h := &UserHandler{service: m, adminOpenids: make(map[string]struct{})}
 	r := setupGin()
 	r.POST("/users/subscribe/follow", func(c *gin.Context) {
 		c.Set("userID", uint(42))
@@ -65,7 +65,7 @@ func TestUserHandler_SubscribeFollow_Success(t *testing.T) {
 
 func TestUserHandler_SubscribeFollow_Unauthorized(t *testing.T) {
 	m := &mockUserService{}
-	h := &UserHandler{service: m}
+	h := &UserHandler{service: m, adminOpenids: make(map[string]struct{})}
 	r := setupGin()
 	r.POST("/users/subscribe/follow", h.SubscribeFollow) // no userID set
 
@@ -101,7 +101,7 @@ func TestUserHandler_GetProfile_Success(t *testing.T) {
 		},
 	}
 
-	h := &UserHandler{service: svc}
+	h := &UserHandler{service: svc, adminOpenids: make(map[string]struct{})}
 	r := setupGin()
 	r.GET("/users/profile", func(c *gin.Context) {
 		c.Set("userID", uint(42))

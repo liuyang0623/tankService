@@ -36,21 +36,40 @@ type UserDetailResponse struct {
 	IsFollowing    bool  `json:"isFollowing"`
 }
 
+// UserProfileResponse is the API DTO for GET /users/profile, extending the user with admin info.
+type UserProfileResponse struct {
+	*User
+	IsAdmin bool `json:"isAdmin"`
+}
+
 // UserHandler handles HTTP requests for users.
 type UserHandler struct {
-	service     userServiceIface
-	followStats followStatsIface // optional; when nil, counts default to 0
+	service        userServiceIface
+	followStats    followStatsIface // optional; when nil, counts default to 0
+	adminOpenids   map[string]struct{} // admin whitelist for quick lookup
 }
 
 // NewUserHandler creates a new UserHandler with the given service.
-func NewUserHandler(service *UserService) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(service *UserService, adminOpenids []string) *UserHandler {
+	h := &UserHandler{service: service, adminOpenids: make(map[string]struct{}, len(adminOpenids))}
+	for _, id := range adminOpenids {
+		h.adminOpenids[id] = struct{}{}
+	}
+	return h
 }
 
 // SetFollowStats injects the follow-stats provider (called from main after both
 // services are constructed).
 func (h *UserHandler) SetFollowStats(fs followStatsIface) {
 	h.followStats = fs
+}
+
+// isAdmin checks if the current user's openid is in the admin whitelist.
+func (h *UserHandler) isAdmin(user *User) bool {
+	if _, ok := h.adminOpenids[user.Openid]; ok {
+		return true
+	}
+	return false
 }
 
 // getUserID retrieves the userID injected by JWTMiddleware from gin context.
@@ -88,7 +107,13 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, user)
+	// 构建包含管理员信息的响应
+	resp := UserProfileResponse{
+		User:  user,
+		IsAdmin: h.isAdmin(user),
+	}
+
+	response.Success(c, resp)
 }
 
 // SubscribeFollow godoc

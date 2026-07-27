@@ -93,7 +93,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 		// User routes
 		userSvc := users.NewUserService(db)
-		userHandler := users.NewUserHandler(userSvc)
+		userHandler := users.NewUserHandler(userSvc, cfg.AdminOpenids)
 
 		// Notification service (declared before follow so follow can trigger notifications)
 		notificationSvc := notification.NewNotificationService(db)
