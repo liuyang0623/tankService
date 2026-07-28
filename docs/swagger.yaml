@@ -4,23 +4,109 @@ definitions:
     properties:
       code:
         type: string
+      nickName:
+        type: string
+      avatarUrl:
+        type: string
     type: object
   internal_interactions.CreateCommentRequest:
     properties:
+      postId:
+        type: integer
       content:
         type: string
       parentId:
         type: integer
-      postId:
-        type: integer
     type: object
   internal_posts.CreatePostRequest:
     properties:
+      title:
+        type: string
       content:
         type: string
       cover:
         type: string
+      category:
+        type: string
+    type: object
+  updateConfigRequest:
+    properties:
+      auditMode:
+        type: boolean
+    type: object
+  CreateDiaryInput:
+    properties:
       title:
+        type: string
+      content:
+        type: string
+      notebookId:
+        type: integer
+      images:
+        type: string
+    type: object
+  UpdateDiaryInput:
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+      notebookId:
+        type: integer
+      images:
+        type: string
+    type: object
+  CreateNotebookInput:
+    properties:
+      name:
+        type: string
+    type: object
+  UpdateNotebookInput:
+    properties:
+      name:
+        type: string
+    type: object
+  CreateQuestionInput:
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+    type: object
+  CreateAnswerInput:
+    properties:
+      content:
+        type: string
+    type: object
+  CreateSportGoalInput:
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      target:
+        type: integer
+      unit:
+        type: string
+    type: object
+  UpdateSportGoalInput:
+    properties:
+      name:
+        type: string
+      description:
+        type: string
+      target:
+        type: integer
+      unit:
+        type: string
+    type: object
+  SendMessageRequest:
+    properties:
+      toUserID:
+        type: integer
+      type:
+        type: string
+      content:
         type: string
     type: object
 host: localhost:3000
@@ -35,7 +121,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: WeChat code
+      - description: WeChat code and user info
         in: body
         name: body
         required: true
@@ -62,6 +148,75 @@ paths:
       summary: WeChat mini-program login
       tags:
       - auth
+  /app-config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get app config
+      tags:
+      - app-config
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Configuration data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/updateConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update app config (admin only)
+      tags:
+      - app-config
+      security:
+      - Bearer: []
+  /categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get category list
+      tags:
+      - posts
   /comments:
     post:
       consumes:
@@ -96,11 +251,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Create a comment on a post
       tags:
       - interactions
+      security:
+      - Bearer: []
   /comments/{id}:
     delete:
       parameters:
@@ -135,11 +290,322 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Delete a comment
       tags:
       - interactions
+      security:
+      - Bearer: []
+  /conversations:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Optional user ID to find conversation with
+        in: query
+        name: withUser
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List current user's conversations
+      tags:
+      - message
+  /conversations/{id}/messages:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get paginated messages for a conversation
+      tags:
+      - message
+  /conversations/{id}/read:
+    post:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark messages as read in a conversation
+      tags:
+      - message
+  /diaries:
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Diary data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateDiaryInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new diary entry
+      tags:
+      - diaries
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Optional notebook ID to filter
+        in: query
+        name: notebookId
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user's diary list
+      tags:
+      - diaries
+  /diaries/{id}:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Diary ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a diary entry by ID
+      tags:
+      - diaries
+    patch:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Diary ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update fields
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a diary entry
+      tags:
+      - diaries
+    delete:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Diary ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a diary entry
+      tags:
+      - diaries
   /posts:
     get:
       parameters:
@@ -151,6 +617,24 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Title keyword search
+        in: query
+        name: keyword
+        type: string
+      - description: Category filter
+        in: query
+        name: category
+        type: string
+      - description: Sort mode (likes)
+        in: query
+        name: sort
+        type: string
+      - description: Only followed authors' posts
+        in: query
+        name: following
+        type: boolean
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -168,6 +652,8 @@ paths:
     post:
       consumes:
       - application/json
+      security:
+      - Bearer: []
       parameters:
       - description: Post data
         in: body
@@ -198,13 +684,114 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Create a new post
       tags:
       - posts
+  /posts/drafts:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user's draft posts
+      tags:
+      - posts
+  /posts/my:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user's all posts (including drafts)
+      tags:
+      - posts
   /posts/{id}:
+    get:
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a post by ID
+      tags:
+      - posts
     delete:
+      security:
+      - Bearer: []
       parameters:
       - description: Post ID
         in: path
@@ -237,45 +824,14 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Delete a post
-      tags:
-      - posts
-    get:
-      parameters:
-      - description: Post ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a post by ID
       tags:
       - posts
     patch:
       consumes:
       - application/json
+      security:
+      - Bearer: []
       parameters:
       - description: Post ID
         in: path
@@ -287,7 +843,6 @@ paths:
         name: body
         required: true
         schema:
-          additionalProperties: true
           type: object
       produces:
       - application/json
@@ -322,8 +877,6 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Update a post
       tags:
       - posts
@@ -343,6 +896,8 @@ paths:
         in: query
         name: limit
         type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -362,43 +917,18 @@ paths:
       summary: Get comments for a post
       tags:
       - interactions
-  /posts/{id}/favorite:
-    post:
-      parameters:
-      - description: Post ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Favorite or unfavorite a post
-      tags:
-      - interactions
   /posts/{id}/like:
     post:
+      security:
+      - Bearer: []
       parameters:
       - description: Post ID
         in: path
         name: id
         required: true
         type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -415,19 +945,52 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      summary: Like or unlike a post
+      tags:
+      - interactions
+  /posts/{id}/favorite:
+    post:
       security:
       - Bearer: []
-      summary: Like or unlike a post
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Favorite or unfavorite a post
       tags:
       - interactions
   /posts/{id}/publish:
     post:
+      security:
+      - Bearer: []
       parameters:
       - description: Post ID
         in: path
         name: id
         required: true
         type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -454,13 +1017,440 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Publish a draft post
       tags:
       - posts
-  /posts/drafts:
+  /questions:
     get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get question list
+      tags:
+      - inspiration
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Question data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateQuestionInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new question
+      tags:
+      - inspiration
+  /questions/{id}:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get question details
+      tags:
+      - inspiration
+  /questions/{id}/answers:
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Answer data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateAnswerInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create an answer to a question
+      tags:
+      - inspiration
+  /questions/{id}/answers/{aid}/like:
+    post:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Answer ID
+        in: path
+        name: aid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Like or unlike an answer
+      tags:
+      - inspiration
+  /questions/{id}/accept/{aid}:
+    post:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Question ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Answer ID
+        in: path
+        name: aid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Accept an answer
+      tags:
+      - inspiration
+  /sport-goals:
+    get:
+      security:
+      - Bearer: []
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user's sport goals
+      tags:
+      - inspiration
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Sport goal data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateSportGoalInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new sport goal
+      tags:
+      - inspiration
+  /sport-goals/{id}:
+    patch:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update fields
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a sport goal
+      tags:
+      - inspiration
+    post:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check-in to a sport goal
+      tags:
+      - inspiration
+  /sport-goals/{id}/records:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Goal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: "Month in YYYY-MM format (default: current month)"
+        in: query
+        name: month
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get check-in records for a sport goal in a month
+      tags:
+      - inspiration
+  /users/me/favorites:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -477,15 +1467,539 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      summary: Get current user's favorited posts
+      tags:
+      - interactions
+  /users/profile:
+    get:
       security:
       - Bearer: []
-      summary: Get current user's draft posts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user profile
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Profile updates
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update current user profile
+      tags:
+      - users
+  /users/:id:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get user by ID
+      tags:
+      - users
+  /users/:id/followers:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List followers of a user
+      tags:
+      - follow
+  /users/:id/following:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List users that a user follows
+      tags:
+      - follow
+  /users/:id/posts:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get published posts by user ID
       tags:
       - posts
+  /users/:id/follow:
+    post:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Target user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Follow or unfollow a user
+      tags:
+      - follow
+  /users/subscribe/follow:
+    post:
+      security:
+      - Bearer: []
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Subscribe follow notification quota
+      tags:
+      - users
+  /notebooks:
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Notebook data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/CreateNotebookInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new notebook
+      tags:
+      - notebooks
+    get:
+      security:
+      - Bearer: []
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get current user's notebook list
+      tags:
+      - notebooks
+  /notebooks/{id}:
+    patch:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Notebook ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateNotebookInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update a notebook
+      tags:
+      - notebooks
+    delete:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Notebook ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete a notebook
+      tags:
+      - notebooks
+  /messages:
+    post:
+      consumes:
+      - application/json
+      security:
+      - Bearer: []
+      parameters:
+      - description: Message data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Send a message to another user
+      tags:
+      - message
+  /notifications:
+    get:
+      security:
+      - Bearer: []
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List system notifications
+      tags:
+      - notification
+  /notifications/read:
+    post:
+      security:
+      - Bearer: []
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark all notifications as read
+      tags:
+      - notification
+  /notifications/unread-count:
+    get:
+      security:
+      - Bearer: []
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get unread notification count
+      tags:
+      - notification
   /upload/file:
     post:
       consumes:
       - multipart/form-data
+      security:
+      - Bearer: []
       parameters:
       - description: File
         in: formData
@@ -520,8 +2034,6 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Upload a file
       tags:
       - upload
@@ -529,6 +2041,8 @@ paths:
     post:
       consumes:
       - multipart/form-data
+      security:
+      - Bearer: []
       parameters:
       - description: Image file
         in: formData
@@ -563,167 +2077,9 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - Bearer: []
       summary: Upload an image
       tags:
       - upload
-  /users/{id}:
-    get:
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get user by ID
-      tags:
-      - users
-  /users/{id}/posts:
-    get:
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get published posts by user ID
-      tags:
-      - posts
-  /users/me/favorites:
-    get:
-      parameters:
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Page size
-        in: query
-        name: limit
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Get current user's favorited posts
-      tags:
-      - interactions
-  /users/profile:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Get current user profile
-      tags:
-      - users
-    patch:
-      consumes:
-      - application/json
-      parameters:
-      - description: Profile updates
-        in: body
-        name: body
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - Bearer: []
-      summary: Update current user profile
-      tags:
-      - users
 securityDefinitions:
   Bearer:
     in: header
