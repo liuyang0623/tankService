@@ -39,7 +39,18 @@ func getUserID(c *gin.Context) (uint, bool) {
 	return uid, ok
 }
 
-// Create 创建日记本。
+// Create godoc
+// @Summary Create a new notebook
+// @Tags notebooks
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param body body CreateNotebookInput true "Notebook data"
+// @Success 200 {object} map[string]interface{}{"notebook":{"id":1,"name":""}}
+// @Failure 400 {object} map[string]interface{}{"message":"name is required"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /notebooks [post]
 func (h *NotebookHandler) Create(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -63,7 +74,16 @@ func (h *NotebookHandler) Create(c *gin.Context) {
 	response.Success(c, nb)
 }
 
-// FindMine 返回当前用户的日记本列表。
+// FindMine godoc
+// @Summary Get current user's notebook list
+// @Tags notebooks
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"notebooks":[{"id":1,"name":""}]}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /notebooks [get]
 func (h *NotebookHandler) FindMine(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -78,7 +98,20 @@ func (h *NotebookHandler) FindMine(c *gin.Context) {
 	response.Success(c, list)
 }
 
-// Update 更新日记本。
+// Update godoc
+// @Summary Update a notebook
+// @Tags notebooks
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param id path int true "Notebook ID"
+// @Param body body UpdateNotebookInput true "Update fields"
+// @Success 200 {object} map[string]interface{}{"notebook":{"id":1,"name":""}}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid notebook id"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"notebook not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /notebooks/{id} [patch]
 func (h *NotebookHandler) Update(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -107,7 +140,18 @@ func (h *NotebookHandler) Update(c *gin.Context) {
 	response.Success(c, nb)
 }
 
-// Remove 删除日记本。
+// Remove godoc
+// @Summary Delete a notebook
+// @Tags notebooks
+// @Security Bearer
+// @Param id path int true "Notebook ID"
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"message":"deleted"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"notebook not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /notebooks/{id} [delete]
 func (h *NotebookHandler) Remove(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {

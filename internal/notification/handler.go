@@ -52,7 +52,13 @@ func parsePagination(c *gin.Context) (int, int) {
 // @Summary List my system notifications
 // @Tags notification
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Param page query int false "Page number"
+// @Param limit query int false "Page size"
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"notifications":[{"id":1,"message":"","createTime":""}]}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /notifications [get]
 func (h *NotificationHandler) List(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -73,7 +79,11 @@ func (h *NotificationHandler) List(c *gin.Context) {
 // @Summary Mark all my notifications as read
 // @Tags notification
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"ok":true}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /notifications/read [post]
 func (h *NotificationHandler) MarkRead(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -92,7 +102,11 @@ func (h *NotificationHandler) MarkRead(c *gin.Context) {
 // @Summary Get my unread notification count and latest summary
 // @Tags notification
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"unreadCount":5,"latest":"You have a new like on your post"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /notifications/unread-count [get]
 func (h *NotificationHandler) UnreadCount(c *gin.Context) {
 	uid, ok := getUserID(c)

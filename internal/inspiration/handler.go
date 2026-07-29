@@ -248,7 +248,16 @@ func NewSportHandler(service *SportService) *SportHandler {
 	return &SportHandler{service: service}
 }
 
-// ListGoals 获取当前用户的运动目标列表。
+// ListGoals godoc
+// @Summary Get current user's sport goals
+// @Tags inspiration
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"goals":[{"id":1,"name":"","description":"","target":0,"unit":""}]}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /sport-goals [get]
 func (h *SportHandler) ListGoals(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -264,7 +273,18 @@ func (h *SportHandler) ListGoals(c *gin.Context) {
 	response.Success(c, goals)
 }
 
-// CreateGoal 创建运动目标。
+// CreateGoal godoc
+// @Summary Create a new sport goal
+// @Tags inspiration
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param body body CreateSportGoalInput true "Sport goal data"
+// @Success 200 {object} map[string]interface{}{"goal":{"id":1,"name":"","description":"","target":0,"unit":""}}
+// @Failure 400 {object} map[string]interface{}{"message":"name is required"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /sport-goals [post]
 func (h *SportHandler) CreateGoal(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -290,7 +310,20 @@ func (h *SportHandler) CreateGoal(c *gin.Context) {
 	response.Success(c, goal)
 }
 
-// UpdateGoal 更新运动目标。
+// UpdateGoal godoc
+// @Summary Update a sport goal
+// @Tags inspiration
+// @Security Bearer
+// @Accept json
+// @Produce json
+// @Param id path int true "Goal ID"
+// @Param body body UpdateSportGoalInput true "Update fields"
+// @Success 200 {object} map[string]interface{}{"goal":{"id":1,"name":"","description":"","target":0,"unit":""}}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid goal id"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"goal not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /sport-goals/{id} [patch]
 func (h *SportHandler) UpdateGoal(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -322,7 +355,18 @@ func (h *SportHandler) UpdateGoal(c *gin.Context) {
 	response.Success(c, goal)
 }
 
-// Checkin 对运动目标打卡。
+// Checkin godoc
+// @Summary Check-in to a sport goal
+// @Tags inspiration
+// @Security Bearer
+// @Param id path int true "Goal ID"
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"checkin":{"id":1,"userId":1,"goalId":1,"checkInDate":"2026-07-28"}}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"goal not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /sport-goals/{id} [post]
 func (h *SportHandler) Checkin(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {
@@ -348,8 +392,20 @@ func (h *SportHandler) Checkin(c *gin.Context) {
 	response.Success(c, result)
 }
 
-// ListMonthRecords 返回某目标指定月份的打卡日期列表。
-// query ?month=YYYY-MM，缺省当月。
+// ListMonthRecords godoc
+// @Summary Get check-in records for a sport goal in a month
+// @Tags inspiration
+// @Security Bearer
+// @Param id path int true "Goal ID"
+// @Param month query string false "Month in YYYY-MM format (default: current month)"
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"records":{"2026-07-28":[1,2]}}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid goal id or month format"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"goal not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
+// @Router /sport-goals/{id}/records [get]
 func (h *SportHandler) ListMonthRecords(c *gin.Context) {
 	uid, ok := getUserID(c)
 	if !ok {

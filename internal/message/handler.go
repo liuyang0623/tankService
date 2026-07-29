@@ -84,7 +84,13 @@ func parseConversationID(c *gin.Context) (uint, bool) {
 // @Tags message
 // @Security Bearer
 // @Param body body SendMessageRequest true "Message body"
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"message":{"id":1,"senderId":1,"toUserId":1,"type":"text","content":"","createTime":""}}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid request"}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"user not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /messages [post]
 func (h *MessageHandler) SendMessage(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -129,7 +135,13 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 // @Security Bearer
 // @Param page query int false "Page number"
 // @Param limit query int false "Page size"
-// @Success 200 {object} map[string]interface{}
+// @Param withUser query int false "Optional user ID to find conversation with"
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"conversations":[{"id":1,"lastMessage":"","createTime":""}]}
+// @Success 200 {object} map[string]interface{}{"conversationId":1}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /conversations [get]
 func (h *MessageHandler) ListConversations(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -171,7 +183,12 @@ func (h *MessageHandler) ListConversations(c *gin.Context) {
 // @Param id path int true "Conversation ID"
 // @Param page query int false "Page number"
 // @Param limit query int false "Page size"
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"messages":[{"id":1,"senderId":1,"content":"text","createTime":""},"page":1,"total":10}]
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 403 {object} map[string]interface{}{"message":"not a participant of this conversation"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /conversations/{id}/messages [get]
 func (h *MessageHandler) GetMessages(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -205,7 +222,12 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 // @Tags message
 // @Security Bearer
 // @Param id path int true "Conversation ID"
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"success":true}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 404 {object} map[string]interface{}{"message":"conversation not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /conversations/{id}/read [post]
 func (h *MessageHandler) MarkRead(c *gin.Context) {
 	uid, ok := getUserID(c)

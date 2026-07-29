@@ -83,10 +83,14 @@ func getUserID(c *gin.Context) (uint, bool) {
 }
 
 // GetProfile godoc
-// @Summary Get current user profile
+// @Summary Get current user profile with admin info
 // @Tags users
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"user":{"id":1,"openid":"","nickname":"","avatarUrl":"","isAdmin":true},"message":""}
+// @Failure 401 {object} map[string]interface{}{"message":"login expired"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/profile [get]
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -120,7 +124,11 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 // @Summary 上报关注订阅授权（累加可推送配额）
 // @Tags users
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"ok":true}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/subscribe/follow [post]
 func (h *UserHandler) SubscribeFollow(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -185,13 +193,15 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 }
 
 // GetUser godoc
-// @Summary Get user by ID
+// @Summary Get user by ID with follow stats and admin info
 // @Tags users
 // @Param id path int true "User ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"user":{"id":1,"openid":"","nickname":"","avatarUrl":"","followerCount":0,"followingCount":0,"isFollowing":false}}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid user id"}
+// @Failure 404 {object} map[string]interface{}{"message":"user not found"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/{id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	idStr := c.Param("id")

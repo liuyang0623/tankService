@@ -73,7 +73,12 @@ func parseUserID(c *gin.Context) (uint, bool) {
 // @Tags follow
 // @Security Bearer
 // @Param id path int true "Target user ID"
-// @Success 200 {object} map[string]interface{}
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}{"following":true}
+// @Failure 401 {object} map[string]interface{}{"message":"unauthorized"}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid user id"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/{id}/follow [post]
 func (h *FollowHandler) ToggleFollow(c *gin.Context) {
 	uid, ok := getUserID(c)
@@ -105,7 +110,11 @@ func (h *FollowHandler) ToggleFollow(c *gin.Context) {
 // @Param id path int true "User ID"
 // @Param page query int false "Page number"
 // @Param limit query int false "Page size"
+// @Accept json
+// @Produce json
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid user id"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/{id}/followers [get]
 func (h *FollowHandler) ListFollowers(c *gin.Context) {
 	targetID, ok := parseUserID(c)
@@ -130,7 +139,11 @@ func (h *FollowHandler) ListFollowers(c *gin.Context) {
 // @Param id path int true "User ID"
 // @Param page query int false "Page number"
 // @Param limit query int false "Page size"
+// @Accept json
+// @Produce json
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}{"message":"invalid user id"}
+// @Failure 500 {object} map[string]interface{}{"message":"server error"}
 // @Router /users/{id}/following [get]
 func (h *FollowHandler) ListFollowing(c *gin.Context) {
 	targetID, ok := parseUserID(c)
