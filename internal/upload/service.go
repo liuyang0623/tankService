@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"path/filepath"
@@ -130,8 +131,13 @@ type uploadResultInternal struct {
 // upload performs the actual upload to UpYun.
 // Signature algorithm: METHOD&/bucket/path&DATE (no content-length).
 func (s *UpYunService) upload(data []byte, filePath, mimeType string) (*uploadResultInternal, error) {
-	// Upload URL: http://v0.api.upyun.com/bucket/path
-	upURL := fmt.Sprintf("http://%s/%s%s", s.endpoint, s.bucket, filePath)
+	// Ensure endpoint has a protocol prefix; default to https if none provided
+	endpoint := s.endpoint
+	if !strings.Contains(endpoint, "://") {
+		endpoint = "https://" + endpoint
+	}
+
+	upURL := fmt.Sprintf("%s/%s%s", endpoint, s.bucket, filePath)
 
 	date := time.Now().UTC().Format(http.TimeFormat)
 
@@ -142,6 +148,7 @@ func (s *UpYunService) upload(data []byte, filePath, mimeType string) (*uploadRe
 
 	req, err := http.NewRequest(http.MethodPut, upURL, bytes.NewReader(data))
 	if err != nil {
+		log.Printf("[UpYun] failed to create request: %v", err)
 		return nil, fmt.Errorf("create upload request: %w", err)
 	}
 
@@ -152,12 +159,14 @@ func (s *UpYunService) upload(data []byte, filePath, mimeType string) (*uploadRe
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("[UpYun] request to %s failed: %v", upURL, err)
 		return nil, fmt.Errorf("upload to UpYun: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
+		log.Printf("[UpYun] upload failed: status=%d body=%s", resp.StatusCode, string(body))
 		return nil, fmt.Errorf("upyun upload failed: %s - %s", resp.Status, string(body))
 	}
 

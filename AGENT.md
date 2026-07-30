@@ -80,6 +80,7 @@ go test ./...     # 全量测试，保持全绿
 ## 5. Git 约定
 
 - 提交信息 `<type>(scope): 描述`，type ∈ feat/fix/refactor/docs/test/chore/perf/ci。
+- **分支前置条件**：开启任何 comet 流程（`/comet` 新特性、`/comet-hotfix` 快修、`/comet-tweak` 小改）之前，必须先在 git 中创建新的开发分支（如 `feature/xxx` 或 `fix/xxx`），不得在 main 或其他共享分支上直接修改代码。
 - **提交/推送需用户明确要求**，不要自动 push。
 
 ---

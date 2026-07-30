@@ -3,6 +3,7 @@ package upload
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 
@@ -94,7 +95,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	userFolder := getUserFolder(c)
 	result, err := h.service.UploadImage(data, filepath.Base(header.Filename), contentType, userFolder)
 	if err != nil {
-		fmt.Printf("[Upload Error] UploadImage failed: %v\n", err)
+		log.Printf("[Upload Error] UploadImage failed: userFolder=%s error=%v", userFolder, err)
 		response.InternalError(c, "upload failed: "+err.Error())
 		return
 	}
@@ -138,7 +139,7 @@ func (h *UploadHandler) UploadFile(c *gin.Context) {
 	userFolder := getUserFolder(c)
 	result, err := h.service.UploadFile(data, filepath.Base(header.Filename), contentType, userFolder)
 	if err != nil {
-		fmt.Printf("[Upload Error] UploadFile failed: %v\n", err)
+		log.Printf("[Upload Error] UploadFile failed: userFolder=%s error=%v", userFolder, err)
 		response.InternalError(c, "upload failed: "+err.Error())
 		return
 	}
