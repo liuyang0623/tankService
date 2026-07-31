@@ -35,13 +35,14 @@ services:
     container_name: go-service-app
     restart: unless-stopped
     ports:
-      # 仅绑定到 127.0.0.1，3000 端口不对外网暴露
-      # 由宿主机上的 Nginx 反向代理到此端口，外部只需开放 80/443
-      - '127.0.0.1:3000:3000'
+      # 绑定到所有接口，3000 端口对外网暴露
+      # 小程序可以直接访问，或者由 Nginx 反向代理
+      - '3000:3000'
     env_file:
       - .env
     environment:
       PORT: 3000
+      LISTEN_ADDR: 0.0.0.0:3000
       DATABASE_URL: ${DB_USER:-go_service}:${DB_PASSWORD}@tcp(mysql:3306)/${DB_NAME:-go_service_db}?charset=utf8mb4&parseTime=True&loc=Local
       API_PREFIX: ${API_PREFIX:-api/v1}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
