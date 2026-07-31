@@ -13,6 +13,8 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
 
 	_ "go-service/docs"
 	"go-service/internal/appconfig"
@@ -273,7 +275,12 @@ func main() {
 	}
 
 	// 4. Start the HTTP server
-	if err := r.Run(":" + cfg.Port); err != nil {
+	listenAddr := ":" + cfg.Port
+	if l := os.Getenv("LISTEN_ADDR"); l != "" {
+		listenAddr = l
+	}
+	log.Printf("Starting server on %s", listenAddr)
+	if err := http.ListenAndServe(listenAddr, r); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}
 }
